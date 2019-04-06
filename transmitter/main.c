@@ -1321,7 +1321,7 @@ void TransceiverModeRx (_u8 c1channel_number, _u8 source_mac[6])
         memset(&buffer[0], 0, sizeof(buffer));
         recievedBytes = sl_Recv(qsocket_handle, buffer, BUFFER_SIZE, 0);
         frameRadioHeader = (TransceiverRxOverHead_t *)buffer;
-        if(buffer[12]==0xFF && buffer[13]==0xFF && buffer[14]==0xFF && buffer[15]==0xFF && buffer[16]==0xFF && buffer[17]==0xFF){
+        if(buffer[12]==0xFF && buffer[13]==0xFF && buffer[14]==0xFF && buffer[15]==0xFF && buffer[16]==0xFF && buffer[17]==0xFF && buffer[62]==0xcc ){
             source_mac[0]=buffer[24];
             source_mac[1]=buffer[25];
             source_mac[2]=buffer[26];
@@ -1343,7 +1343,7 @@ void TransceiverModeRx (_u8 c1channel_number, _u8 source_mac[6])
     sl_Close(qsocket_handle);
 }
 
-#define flag_function 1//1: SINK, 2: SOURCE
+#define flag_function 2//1: SINK, 2: SOURCE
 #define flag_channel 2
 #define flag_rate 5
 #define flag_packets 10
@@ -1440,7 +1440,7 @@ int main()
 
    while (iFlag)
     {
-    User = UserInput();
+//    User = UserInput();
 
 
     _u8 source_mac[6] = {0xff};
@@ -1458,7 +1458,7 @@ int main()
         TransceiverModeRx(flag_channel, source_mac);
         UART_PRINT("Recieved Hello\n\r");
       //waiting for hello
-        lRetVal = Tx_continuous(flag_channel, flag_rate, flag_packets, flag_power, 0, flag_interpackettime, 2, source_mac);
+        lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, flag_interpackettime, 2, source_mac);
         UART_PRINT("Sent Ack\n\r");
         break;
     }
