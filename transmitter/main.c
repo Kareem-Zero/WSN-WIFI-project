@@ -979,22 +979,22 @@ static int Tx_continuous(int iChannel,SlRateIndex_e rate,int iNumberOfPackets,
 
     switch(message_type){
 
-    case 0:
+    case 0://ping
         for(index=0;index<sizeof(message);index++){
             message[index]=RawData_Ping[index];}
             break;
-    case 1:
+    case 1://hello
         for(index=0;index<sizeof(message);index++){
             message[index]=Hello[index];}
         for(index=4;index<10;index++){
             message[index]=0xFF;
         }
             break;
-    case 2:
+    case 2://ack
         for(index=0;index<sizeof(message);index++){
             message[index]=ACK[index];}
             break;
-    case 3:
+    case 3://data
         for(index=0;index<sizeof(message);index++){
             message[index]=Data[index];}
             break;
@@ -1291,11 +1291,10 @@ typedef struct
 
 TransceiverRxOverHead_t;
 
-void TransceiverModeRx (_u8 c1channel_number, _u32 p1pkts_to_receive)
+void TransceiverModeRx (_u8 c1channel_number)
 {
     TransceiverRxOverHead_t *frameRadioHeader = NULL;
     int cchannel_number=c1channel_number;
-    int ppkts_to_receive=p1pkts_to_receive;
     _u8 buffer[BUFFER_SIZE] = {'\0'};
     _i32 qsocket_handle = -1;
     _i32 recievedBytes = 0;
@@ -1321,6 +1320,11 @@ void TransceiverModeRx (_u8 c1channel_number, _u32 p1pkts_to_receive)
 }
 
 #define flag_function 1//1: SINK, 2: SOURCE
+#define flag_channel 2
+#define flag_rate 5
+#define flag_packets 10
+#define flag_power 15
+
 int main()
 {
     UserIn User;
@@ -1414,23 +1418,18 @@ int main()
 
     switch(flag_function){
     case(1)://SINK node
-
-        /*******An example of Tx continuous on user selected channel, rate 11,
-        * user selected number of packets, minimal delay between packets*******/
-
-        lRetVal = Tx_continuous(User.channel,User.rate,User.packets, User.Txpower,0,2,User.Message);
+        lRetVal = Tx_continuous(flag_channel, flag_rate, flag_packets, flag_power, 0, 2, 1);
         if(lRetVal < 0)
         {
             UART_PRINT("Error during transmission of raw data\n\r");
             LOOP_FOREVER();
         }
+
         break;
     case(2)://SOURCE node
-
-        /******An example of Rx statistics using user selected channel *******/
 //        lRetVal = RxStatisticsCollect();
         lRetVal = 1;
-        TransceiverModeRx(2,10);
+        TransceiverModeRx(flag_channel);
         if(lRetVal < 0)
         {
             UART_PRINT("Error while collecting statistics data\n\r");
