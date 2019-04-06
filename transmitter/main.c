@@ -1440,13 +1440,13 @@ int main()
 
    while (iFlag)
     {
-    User = UserInput();
+    //User = UserInput();
 
 
-    _u8 source_mac[6] = {0xff};
+    _u8 source_mac[6] = {0xff,0xff,0xff,0xff,0xff,0xff};
     switch(flag_function){
     case(1)://SINK node;
-        lRetVal = Tx_continuous(flag_channel, flag_rate, flag_packets, flag_power, 0, flag_interpackettime, 1, source_mac);
+        lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, flag_interpackettime, 1, source_mac);
         if(lRetVal < 0)
         {
             UART_PRINT("Error during transmission of raw data\n\r");
