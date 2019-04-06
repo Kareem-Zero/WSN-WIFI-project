@@ -212,7 +212,7 @@ char ACK[] = {
        0xc0, 0xa8, 0x01, 0x64,              /* src ip */
        0xc0, 0xa8, 0x01, 0x02,              /* dest ip  */
        /* payload - ping/icmp */
-       0x08, 0x00, 0xA5, 0x51,
+       0xaa, 0xaa, 0xaa, 0xaa,
        0x5E, 0x18, 0x00, 0x00, 0x41, 0x08, 0xBB, 0x8D, 0x00, 0x00, 0x00, 0x00,
        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1321,17 +1321,16 @@ void TransceiverModeRx (_u8 c1channel_number, _u8 source_mac[6])
         memset(&buffer[0], 0, sizeof(buffer));
         recievedBytes = sl_Recv(qsocket_handle, buffer, BUFFER_SIZE, 0);
         frameRadioHeader = (TransceiverRxOverHead_t *)buffer;
-
-//        if(buffer[24]==0xD4){
-          if(buffer[12]==0xFF && buffer[13]==0xFF && buffer[14]==0xFF && buffer[15]==0xFF && buffer[16]==0xFF && buffer[17]==0xFF){
-              source_mac[0]=buffer[24];
-              source_mac[1]=buffer[25];
-              source_mac[2]=buffer[26];
-              source_mac[3]=buffer[27];
-              source_mac[4]=buffer[28];
-              source_mac[5]=buffer[29];
-              break;
-          }
+        if(buffer[12]==0xFF && buffer[13]==0xFF && buffer[14]==0xFF && buffer[15]==0xFF && buffer[16]==0xFF && buffer[17]==0xFF){
+            source_mac[0]=buffer[24];
+            source_mac[1]=buffer[25];
+            source_mac[2]=buffer[26];
+            source_mac[3]=buffer[27];
+            source_mac[4]=buffer[28];
+            source_mac[5]=buffer[29];
+            break;
+        }
+        if(buffer[12]==0xd4 || buffer[12]==0xf4 || (buffer[12]==0xff && buffer[62]==0xcc)){
             UART_PRINT(" ===>>> Timestamp: %iuS, Signal Strength: %idB\n\r", frameRadioHeader->timestamp, frameRadioHeader->rssi);
             UART_PRINT(" ===>>> Destination MAC Address: %02x:%02x:%02x:%02x:%02x:%02x\n\r", buffer[12], buffer[13], buffer[14], buffer[15], buffer[16], buffer[17]);
             UART_PRINT(" ===>>> Bssid: %02x:%02x:%02x:%02x:%02x:%02x\n\r", buffer[18], buffer[19], buffer[20], buffer[21], buffer[22], buffer[23]);
@@ -1339,7 +1338,7 @@ void TransceiverModeRx (_u8 c1channel_number, _u8 source_mac[6])
             UART_PRINT(" ===>>> Source IP Address: %d.%d.%d.%d\n\r", buffer[54],  buffer[55], buffer[56],  buffer[57]);
             UART_PRINT(" ===>>> Destination IP Address: %d.%d.%d.%d\n\r", buffer[58],  buffer[59], buffer[60],  buffer[61]);
             UART_PRINT(" ===>>> Message: %02x.%02x.%02x.%02x\n\r\n", buffer[62],  buffer[63], buffer[64],  buffer[65]);
-//        }
+        }
     }
     sl_Close(qsocket_handle);
 }
@@ -1453,13 +1452,14 @@ int main()
             UART_PRINT("Error during transmission of raw data\n\r");
             LOOP_FOREVER();
         }
-
+        TransceiverModeRx(flag_channel, source_mac);
         break;
     case(2)://SOURCE node
         TransceiverModeRx(flag_channel, source_mac);
+        UART_PRINT("Recieved Hello\n\r");
       //waiting for hello
         lRetVal = Tx_continuous(flag_channel, flag_rate, flag_packets, flag_power, 0, flag_interpackettime, 2, source_mac);
-
+        UART_PRINT("Sent Ack\n\r");
         break;
     }
 
