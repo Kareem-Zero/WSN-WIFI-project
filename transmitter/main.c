@@ -1279,6 +1279,46 @@ void interpackettiming(int NumberOfSeconds){
 //! \return none
 //
 //*****************************************************************************
+#define BUFFER_SIZE 1472
+typedef struct
+{
+    _u8   rate;
+    _u8   channel;
+    _i8    rssi;
+    _u8   padding;
+    _u32 timestamp;
+}
+
+TransceiverRxOverHead_t;
+
+void TransceiverModeRx (_u8 c1channel_number, _u32 p1pkts_to_receive)
+{
+    TransceiverRxOverHead_t *frameRadioHeader = NULL;
+    int cchannel_number=c1channel_number;
+    int ppkts_to_receive=p1pkts_to_receive;
+    _u8 buffer[BUFFER_SIZE] = {'\0'};
+    _i32 qsocket_handle = -1;
+    _i32 recievedBytes = 0;
+    qsocket_handle= sl_Socket(SL_AF_RF, SL_SOCK_RAW, cchannel_number);
+    while(1)    //ppkts_to_receive--
+    {
+
+        memset(&buffer[0], 0, sizeof(buffer));
+        recievedBytes = sl_Recv(qsocket_handle, buffer, BUFFER_SIZE, 0);
+        frameRadioHeader = (TransceiverRxOverHead_t *)buffer;
+        if(buffer[24]==0xD4){
+            UART_PRINT(" ===>>> Timestamp: %iuS, Signal Strength: %idB\n\r", frameRadioHeader->timestamp, frameRadioHeader->rssi);
+            UART_PRINT(" ===>>> Destination MAC Address: %02x:%02x:%02x:%02x:%02x:%02x\n\r", buffer[12], buffer[13], buffer[14], buffer[15], buffer[16], buffer[17]);
+            UART_PRINT(" ===>>> Bssid: %02x:%02x:%02x:%02x:%02x:%02x\n\r", buffer[18], buffer[19], buffer[20], buffer[21], buffer[22], buffer[23]);
+            UART_PRINT(" ===>>> Source MAC Address: %02x:%02x:%02x:%02x:%02x:%02x\n\r", buffer[24], buffer[25], buffer[26], buffer[27], buffer[28], buffer[29]);
+            UART_PRINT(" ===>>> Source IP Address: %d.%d.%d.%d\n\r", buffer[54],  buffer[55], buffer[56],  buffer[57]);
+            UART_PRINT(" ===>>> Destination IP Address: %d.%d.%d.%d\n\r", buffer[58],  buffer[59], buffer[60],  buffer[61]);
+            UART_PRINT(" ===>>> Message: %02x.%02x.%02x.%02x\n\r\n", buffer[62],  buffer[63], buffer[64],  buffer[65]);
+
+        }
+    }
+    sl_Close(qsocket_handle);
+}
 
 int main()
 {
@@ -1389,7 +1429,9 @@ int main()
     case(2):
 
         /******An example of Rx statistics using user selected channel *******/
-        lRetVal = RxStatisticsCollect();
+//        lRetVal = RxStatisticsCollect();
+        lRetVal = 1;
+        TransceiverModeRx(2,10);
         if(lRetVal < 0)
         {
             UART_PRINT("Error while collecting statistics data\n\r");

@@ -126,34 +126,34 @@ endif
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXE_OUTPUTS += \
-transceiver_mode.out \
+transmitter.out \
 
 EXE_OUTPUTS__QUOTED += \
-"transceiver_mode.out" \
+"transmitter.out" \
 
 BIN_OUTPUTS += \
-transceiver_mode.bin \
+transmitter.bin \
 
 BIN_OUTPUTS__QUOTED += \
-"transceiver_mode.bin" \
+"transmitter.bin" \
 
 
 # All Target
-all: transceiver_mode.out
+all: transmitter.out
 
 # Tool invocations
-transceiver_mode.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
+transmitter.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
 	@echo 'Building target: "$@"'
 	@echo 'Invoking: ARM Linker'
-	"C:/ti/ccs900/ccs/tools/compiler/ti-cgt-arm_18.12.1.LTS/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 -me --define=ccs --define=cc3200 -g --gcc --printf_support=full --diag_warning=225 --diag_wrap=off --display_error_number --abi=eabi -z -m"transceiver_mode.map" --heap_size=0x8000 --stack_size=0x1500 -i"C:/ti/ccs900/ccs/tools/compiler/ti-cgt-arm_18.12.1.LTS/lib" -i"C:/ti/ccs900/ccs/tools/compiler/ti-cgt-arm_18.12.1.LTS/include" --reread_libs --diag_wrap=off --display_error_number --warn_sections --absolute_exe --xml_link_info="transceiver_mode_linkInfo.xml" --rom_model -o "transceiver_mode.out" $(ORDERED_OBJS)
+	"C:/ti/ccs900/ccs/tools/compiler/ti-cgt-arm_18.12.1.LTS/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 -me --define=ccs --define=cc3200 -g --gcc --printf_support=full --diag_warning=225 --diag_wrap=off --display_error_number --abi=eabi -z -m"transmitter.map" --heap_size=0x8000 --stack_size=0x1500 -i"C:/ti/ccs900/ccs/tools/compiler/ti-cgt-arm_18.12.1.LTS/lib" -i"C:/ti/ccs900/ccs/tools/compiler/ti-cgt-arm_18.12.1.LTS/include" --reread_libs --diag_wrap=off --display_error_number --warn_sections --absolute_exe --xml_link_info="transmitter_linkInfo.xml" --rom_model -o "transmitter.out" $(ORDERED_OBJS)
 	@echo 'Finished building target: "$@"'
 	@echo ' '
 	@$(MAKE) --no-print-directory post-build
 
-transceiver_mode.bin: $(EXE_OUTPUTS)
+transmitter.bin: $(EXE_OUTPUTS)
 	@echo 'Building files: $(strip $(EXE_OUTPUTS__QUOTED))'
 	@echo 'Invoking: ARM Hex Utility'
-	"C:/ti/ccs900/ccs/tools/compiler/ti-cgt-arm_18.12.1.LTS/bin/armhex"  -o "transceiver_mode.bin" $(EXE_OUTPUTS__QUOTED)
+	"C:/ti/ccs900/ccs/tools/compiler/ti-cgt-arm_18.12.1.LTS/bin/armhex"  -o "transmitter.bin" $(EXE_OUTPUTS__QUOTED)
 	@echo 'Finished building: $(strip $(EXE_OUTPUTS__QUOTED))'
 	@echo ' '
 	@$(MAKE) --no-print-directory post-build
@@ -168,7 +168,7 @@ clean:
 
 post-build:
 	-@echo 'Converting to bin file'
-	-"C:/ti/ccs900/ccs/utils/tiobj2bin/tiobj2bin" "transceiver_mode.out" "transceiver_mode.bin" "C:/ti/ccs900/ccs/tools/compiler/ti-cgt-arm_18.12.1.LTS/bin/armofd" "C:/ti/ccs900/ccs/tools/compiler/ti-cgt-arm_18.12.1.LTS/bin/armhex" "C:/ti/ccs900/ccs/utils/tiobj2bin/mkhex4bin"
+	-"C:/ti/ccs900/ccs/utils/tiobj2bin/tiobj2bin" "transmitter.out" "transmitter.bin" "C:/ti/ccs900/ccs/tools/compiler/ti-cgt-arm_18.12.1.LTS/bin/armofd" "C:/ti/ccs900/ccs/tools/compiler/ti-cgt-arm_18.12.1.LTS/bin/armhex" "C:/ti/ccs900/ccs/utils/tiobj2bin/mkhex4bin"
 	-@echo ' '
 
 .PHONY: all clean dependents
