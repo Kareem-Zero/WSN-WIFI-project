@@ -937,6 +937,7 @@ static int Tx_continuous(int iChannel,SlRateIndex_e rate,int iNumberOfPackets,
                                     int iTxPowerLevel,long dIntervalMiliSec,int NumberOfSeconds, int message_type, _u8  source_mac[6])
 {
     int iSoc;
+    int i;
     long lRetVal = -1;
     long ulIndex;
     char message[]={
@@ -977,9 +978,7 @@ static int Tx_continuous(int iChannel,SlRateIndex_e rate,int iNumberOfPackets,
                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                    0x00, 0x00, 0x00, 0x00};
     int index;
-
     switch(message_type){
-
     case 0://ping
         for(index=0;index<sizeof(message);index++){
             message[index]=RawData_Ping[index];}
@@ -1264,9 +1263,9 @@ void tabulate(_u8 mac_add[6]){
     i_mac_array++;
 
     for (j=0; j<10; j++){
-        UART_PRINT("MAC Address %d : ", j);
+        UART_PRINT("MAC Address %X : ", j);
         for(i = 0; i < 6; i++) {
-             UART_PRINT("%d",(unsigned char)Mac_array[j][i]);
+             UART_PRINT("%X",(unsigned char)Mac_array[i][j]);
              if(i<5){
                  UART_PRINT(".");
              }
@@ -1360,7 +1359,7 @@ void TransceiverModeRx (_u8 c1channel_number, _u8 source_mac[6])
     sl_Close(qsocket_handle);
 }
 
-#define flag_function 2//1: SINK, 2: SOURCE
+#define flag_function 1//1: SINK, 2: SOURCE
 #define flag_channel 2
 #define flag_rate 5
 #define flag_packets 10
@@ -1452,12 +1451,12 @@ int main()
     if (lRetVal < 0)
     {
         UART_PRINT("Failed to set policy \n\r");
-        LOOP_FOREVER();
-    }
-   // _u8 source_mac[6];
+        LOOP_FOREVER();}
+
     _u8 source_mac[6]={0xff,0xff,0xff,0xff,0xff,0xff};
    while (iFlag)
     {
+
     switch(flag_function){
     case(1)://SINK node;
         lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, flag_interpackettime, 1,source_mac);
