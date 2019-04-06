@@ -119,6 +119,7 @@ volatile unsigned long  g_ulStatus = 0;//SimpleLink Status
 unsigned long  g_ulGatewayIP = 0; //Network Gateway IP address
 unsigned char  g_ucConnectionSSID[SSID_LEN_MAX+1]; //Connection SSID
 unsigned char  g_ucConnectionBSSID[BSSID_LEN_MAX]; //Connection BSSID
+_u8 macAddressVal[SL_MAC_ADDR_LEN];
 
 char RawData_Ping[] = {
        /*---- wlan header start -----*/
@@ -976,9 +977,6 @@ static int Tx_continuous(int iChannel,SlRateIndex_e rate,int iNumberOfPackets,
                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                    0x00, 0x00, 0x00, 0x00};
     int index;
-    _u8 macAddressVal[SL_MAC_ADDR_LEN];
-    _u8 macAddressLen = SL_MAC_ADDR_LEN;
-    sl_NetCfgGet(SL_MAC_ADDRESS_GET,NULL,&macAddressLen,(unsigned char *)macAddressVal);
 
     switch(message_type){
 
@@ -1258,12 +1256,23 @@ static int RxStatisticsCollect()
 // void tabulate()
 //*****************************************************************************
 void tabulate(_u8 mac_add[6]){
-    int j;
+    int j,i;
     for(j=0;j<6;j++){
-    Mac_array[j][i_mac_array]=mac_add[j];
+        Mac_array[j][i_mac_array]=mac_add[j];
     }
-
     i_mac_array++;
+
+    for (j=0; j<10; j++){
+        UART_PRINT("MAC Address %d : ", j);
+        for(i = 0; i < 6; i++) {
+             UART_PRINT("%d",(unsigned char)Mac_array[j][i]);
+             if(i<5){
+                 UART_PRINT(".");
+             }
+        }
+        UART_PRINT("\n\r");
+    }
+    UART_PRINT("\n\r");
    // check global mac array for repeated mac addresses
 
 }
@@ -1321,7 +1330,8 @@ void TransceiverModeRx (_u8 c1channel_number, _u8 source_mac[6])
         memset(&buffer[0], 0, sizeof(buffer));
         recievedBytes = sl_Recv(qsocket_handle, buffer, BUFFER_SIZE, 0);
         frameRadioHeader = (TransceiverRxOverHead_t *)buffer;
-        if(buffer[12]==0xFF && buffer[13]==0xFF && buffer[14]==0xFF && buffer[15]==0xFF && buffer[16]==0xFF && buffer[17]==0xFF && buffer[62]==0xcc ){
+        if( (buffer[12]==0xFF && buffer[13]==0xFF && buffer[14]==0xFF && buffer[15]==0xFF && buffer[16]==0xFF && buffer[17]==0xFF && buffer[62]==0xcc) ||
+              (buffer[12]==macAddressVal[0] && buffer[13]==macAddressVal[1] && buffer[14]==macAddressVal[2] && buffer[15]==macAddressVal[3] && buffer[16]==macAddressVal[4] && buffer[17]==macAddressVal[5] && buffer[62]==0xaa)  ){
             source_mac[0]=buffer[24];
             source_mac[1]=buffer[25];
             source_mac[2]=buffer[26];
@@ -1406,17 +1416,17 @@ int main()
     //
     lRetVal = sl_Start(0, 0, 0);
     int i;
-        _u8 macAddressVal[SL_MAC_ADDR_LEN];
-        _u8 macAddressLen = SL_MAC_ADDR_LEN;
-        sl_NetCfgGet(SL_MAC_ADDRESS_GET,NULL,&macAddressLen,(unsigned char *)macAddressVal);
-        UART_PRINT("MAC Address is : ");
-        for(i = 0; i < macAddressLen; i++) {
-             UART_PRINT("%d",(unsigned char)macAddressVal[i]);
-             if(i<macAddressLen-1){
-                 UART_PRINT(".");
-             }
-        }
-        UART_PRINT("\n\r");
+
+    _u8 macAddressLen = SL_MAC_ADDR_LEN;
+    sl_NetCfgGet(SL_MAC_ADDRESS_GET,NULL,&macAddressLen,(unsigned char *)macAddressVal);
+    UART_PRINT("MAC Address is : ");
+    for(i = 0; i < macAddressLen; i++) {
+         UART_PRINT("%d",(unsigned char)macAddressVal[i]);
+         if(i<macAddressLen-1){
+             UART_PRINT(".");
+         }
+    }
+    UART_PRINT("\n\r");
     if (lRetVal < 0 || ROLE_STA != lRetVal)
     {
         UART_PRINT("Failed to start the device \n\r");
@@ -1452,6 +1462,8 @@ int main()
             LOOP_FOREVER();
         }
         TransceiverModeRx(flag_channel, source_mac);
+        UART_PRINT("Recieved Ack\n\r");
+        tabulate(source_mac);
         break;
     case(2)://SOURCE node
         TransceiverModeRx(flag_channel, source_mac);
