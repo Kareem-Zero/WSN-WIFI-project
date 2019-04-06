@@ -1320,6 +1320,7 @@ void TransceiverModeRx (_u8 c1channel_number, _u32 p1pkts_to_receive)
     sl_Close(qsocket_handle);
 }
 
+#define flag_function 1//1: SINK, 2: SOURCE
 int main()
 {
     UserIn User;
@@ -1411,22 +1412,20 @@ int main()
     {
     User = UserInput();
 
-    switch(User.choice)
-    {
-    case(1):
+    switch(flag_function){
+    case(1)://SINK node
 
         /*******An example of Tx continuous on user selected channel, rate 11,
         * user selected number of packets, minimal delay between packets*******/
 
-        lRetVal = Tx_continuous(User.channel,User.rate,User.packets, \
-                             User.Txpower,0,2,User.Message);
+        lRetVal = Tx_continuous(User.channel,User.rate,User.packets, User.Txpower,0,2,User.Message);
         if(lRetVal < 0)
         {
             UART_PRINT("Error during transmission of raw data\n\r");
             LOOP_FOREVER();
         }
         break;
-    case(2):
+    case(2)://SOURCE node
 
         /******An example of Rx statistics using user selected channel *******/
 //        lRetVal = RxStatisticsCollect();
