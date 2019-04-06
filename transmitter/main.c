@@ -272,6 +272,8 @@ char Data[] = {
        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
        0x00, 0x00, 0x00, 0x00};
 
+_u8 Mac_array[6][10];
+int i_mac_array=0;
 #if defined(ccs)
 extern void (* const g_pfnVectors[])(void);
 #endif
@@ -293,6 +295,7 @@ static int RxStatisticsCollect();
 static void DisplayBanner(char * AppName);
 static void BoardInit(void);
 static void interpackettiming(int);
+static void tabulate(_u8 mac_add[6]);
 
 
 
@@ -1252,6 +1255,19 @@ static int RxStatisticsCollect()
     return SUCCESS;
 }
 //*****************************************************************************
+// void tabulate()
+//*****************************************************************************
+void tabulate(_u8 mac_add[6]){
+    int j;
+    for(j=0;j<6;j++){
+    Mac_array[j][i_mac_array]=mac_add[j];
+    }
+
+    i_mac_array++;
+   // check global mac array for repeated mac addresses
+
+}
+//*****************************************************************************
 //
 //! void interpackettiming()
 //
@@ -1305,7 +1321,6 @@ void TransceiverModeRx (_u8 c1channel_number)
         memset(&buffer[0], 0, sizeof(buffer));
         recievedBytes = sl_Recv(qsocket_handle, buffer, BUFFER_SIZE, 0);
         frameRadioHeader = (TransceiverRxOverHead_t *)buffer;
-        if(buffer[24]==0xD4){
             UART_PRINT(" ===>>> Timestamp: %iuS, Signal Strength: %idB\n\r", frameRadioHeader->timestamp, frameRadioHeader->rssi);
             UART_PRINT(" ===>>> Destination MAC Address: %02x:%02x:%02x:%02x:%02x:%02x\n\r", buffer[12], buffer[13], buffer[14], buffer[15], buffer[16], buffer[17]);
             UART_PRINT(" ===>>> Bssid: %02x:%02x:%02x:%02x:%02x:%02x\n\r", buffer[18], buffer[19], buffer[20], buffer[21], buffer[22], buffer[23]);
@@ -1314,7 +1329,6 @@ void TransceiverModeRx (_u8 c1channel_number)
             UART_PRINT(" ===>>> Destination IP Address: %d.%d.%d.%d\n\r", buffer[58],  buffer[59], buffer[60],  buffer[61]);
             UART_PRINT(" ===>>> Message: %02x.%02x.%02x.%02x\n\r\n", buffer[62],  buffer[63], buffer[64],  buffer[65]);
 
-        }
     }
     sl_Close(qsocket_handle);
 }
