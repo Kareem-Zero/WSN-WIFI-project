@@ -213,8 +213,8 @@ char ACK[] = {
        0xc0, 0xa8, 0x01, 0x64,              /* src ip */
        0xc0, 0xa8, 0x01, 0x02,              /* dest ip  */
        /* payload - ping/icmp */
-       0xaa, 0xaa, 0xaa, 0xaa,
-       0x5E, 0x18, 0x00, 0x00, 0x41, 0x08, 0xBB, 0x8D, 0x00, 0x00, 0x00, 0x00,
+       0xAA, 0xAA, 0xAA, 0xAA,
+       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -991,6 +991,7 @@ static int Tx_continuous(int iChannel,SlRateIndex_e rate,int iNumberOfPackets,
     case 2://ack
         for(index=0;index<sizeof(message);index++){
             message[index]=ACK[index];}
+        UART_PRINT("preparaing ACK ");
             break;
     case 3://data
         for(index=0;index<sizeof(message);index++){
@@ -1324,6 +1325,9 @@ void TransceiverModeRx (_u8 c1channel_number, _u8 source_mac[6])
     _i32 qsocket_handle = -1;
     _i32 recievedBytes = 0;
     qsocket_handle= sl_Socket(SL_AF_RF, SL_SOCK_RAW, cchannel_number);
+    int i;
+  //  for(i = 0; i < 6; i++)
+    //        { UART_PRINT("%x\n\r",source_mac[i]);}
     while(1)    //ppkts_to_receive--
     {
 
@@ -1332,12 +1336,15 @@ void TransceiverModeRx (_u8 c1channel_number, _u8 source_mac[6])
         frameRadioHeader = (TransceiverRxOverHead_t *)buffer;
         if( (buffer[12]==0xFF && buffer[13]==0xFF && buffer[14]==0xFF && buffer[15]==0xFF && buffer[16]==0xFF && buffer[17]==0xFF && buffer[62]==0xcc) ||
               (buffer[12]==macAddressVal[0] && buffer[13]==macAddressVal[1] && buffer[14]==macAddressVal[2] && buffer[15]==macAddressVal[3] && buffer[16]==macAddressVal[4] && buffer[17]==macAddressVal[5] && buffer[62]==0xaa)  ){
+            for(i = 0; i < 6; i++)
+                    { UART_PRINT("%x\n\r",source_mac[i]);}
             source_mac[0]=buffer[24];
             source_mac[1]=buffer[25];
             source_mac[2]=buffer[26];
             source_mac[3]=buffer[27];
             source_mac[4]=buffer[28];
             source_mac[5]=buffer[29];
+
             break;
         }
         if(buffer[12]==0xd4 || buffer[12]==0xf4 || (buffer[12]==0xff && buffer[62]==0xcc)){
@@ -1447,15 +1454,13 @@ int main()
         UART_PRINT("Failed to set policy \n\r");
         LOOP_FOREVER();
     }
-
+   // _u8 source_mac[6];
+    _u8 source_mac[6]={0xff,0xff,0xff,0xff,0xff,0xff};
    while (iFlag)
     {
-
-
-    _u8 source_mac[6] = {0xff,0xff,0xff,0xff,0xff,0xff};
     switch(flag_function){
     case(1)://SINK node;
-        lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, flag_interpackettime, 1, source_mac);
+        lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, flag_interpackettime, 1,source_mac);
         if(lRetVal < 0)
         {
             UART_PRINT("Error during transmission of raw data\n\r");
@@ -1469,6 +1474,7 @@ int main()
         TransceiverModeRx(flag_channel, source_mac);
         UART_PRINT("Recieved Hello\n\r");
       //waiting for hello
+        interpackettiming(3);
         lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, flag_interpackettime, 2, source_mac);
         UART_PRINT("Sent Ack\n\r");
         break;
