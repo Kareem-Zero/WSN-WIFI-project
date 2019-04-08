@@ -674,7 +674,7 @@ static int transmit(int iChannel,SlRateIndex_e rate,int iNumberOfPackets,
     int iSoc;
     long lRetVal = -1;
     long ulIndex;
-    _u8 buffer[1470] = {'\0'};
+    Packet * buffer = (Packet *) malloc(sizeof(Packet));
 
 
 //    switch(message_type){
@@ -704,12 +704,13 @@ static int transmit(int iChannel,SlRateIndex_e rate,int iNumberOfPackets,
     iSoc = sl_Socket(SL_AF_RF,SL_SOCK_RAW,iChannel);
     ASSERT_ON_ERROR(iSoc);
 //  while loop for recv and backoff
-    memset(&buffer[0], 0, sizeof(buffer));
-    lRetVal = sl_Recv(iSoc, buffer, 1470, 0);
+    memset(&buffer, 0, sizeof(buffer));
+    lRetVal = sl_Recv(iSoc, buffer, sizeof(buffer), 0);
     UART_PRINT("lRetVal 1 is    ");
     UART_PRINT("%d \n\r",lRetVal);
     while(lRetVal==0 || lRetVal == SL_EAGAIN){
-        lRetVal = sl_Recv(iSoc, buffer, 1470, 0);
+        memset(&buffer, 0, sizeof(buffer));
+        lRetVal = sl_Recv(iSoc, buffer, sizeof(buffer), 0);
         UART_PRINT("lRetVal loop is    ");
         UART_PRINT("%d",lRetVal);
         random_backoff_delay();
