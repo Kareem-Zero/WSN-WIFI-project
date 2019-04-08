@@ -1373,7 +1373,7 @@ void interpackettiming(int NumberOfSeconds){
 void TransceiverModeRx (_u8 c1channel_number, _u8 source_mac[6],int mode_selector)
 {   //  remove the extra condition in the if below ( MAC )
     TransceiverRxOverHead_t *frameRadioHeader = NULL;
-    int flag_transmit=0;
+    //int flag_transmit=0;
     flag_ACK=0;
     int RxTime,inf;
     int cchannel_number=c1channel_number;
@@ -1421,7 +1421,7 @@ void TransceiverModeRx (_u8 c1channel_number, _u8 source_mac[6],int mode_selecto
         frameRadioHeader = (TransceiverRxOverHead_t *)buffer;
         if( (buffer[12]==0xFF && buffer[13]==0xFF && buffer[14]==0xFF && buffer[15]==0xFF && buffer[16]==0xFF && buffer[17]==0xFF && buffer[62]==0xcc) ||
               (buffer[12]==macAddressVal[0] && buffer[13]==macAddressVal[1] && buffer[14]==macAddressVal[2] && buffer[15]==macAddressVal[3] && buffer[16]==macAddressVal[4] && buffer[17]==macAddressVal[5] && buffer[62]==0xaa)  ){
-            flag_transmit=0;
+            //flag_transmit=0;
             source_mac[0]=buffer[24];
             source_mac[1]=buffer[25];
             source_mac[2]=buffer[26];
@@ -1429,7 +1429,7 @@ void TransceiverModeRx (_u8 c1channel_number, _u8 source_mac[6],int mode_selecto
             source_mac[4]=buffer[28];
             source_mac[5]=buffer[29];
             /*edit*/
-            random_backoff_delay();
+            //random_backoff_delay();
             break;
 
 
@@ -1443,17 +1443,17 @@ void TransceiverModeRx (_u8 c1channel_number, _u8 source_mac[6],int mode_selecto
             UART_PRINT(" ===>>> Destination IP Address: %d.%d.%d.%d\n\r", buffer[58],  buffer[59], buffer[60],  buffer[61]);
             UART_PRINT(" ===>>> Message: %02x.%02x.%02x.%02x\n\r\n", buffer[62],  buffer[63], buffer[64],  buffer[65]);
         }
-        /*edit*/  flag_transmit=1;
-                          if(flag_transmit){
-                            flag_transmit=0;
+        /*edit*/  //flag_transmit=1;
+                          //if(flag_transmit){
+                           // flag_transmit=0;
                            // allow_transmit();
-                          }
+                         // }
     }
     sl_Close(qsocket_handle);
 }
 
 #define flag_function 1//1: SINK, 2: SOURCE
-#define flag_channel 2
+#define flag_channel 1
 #define flag_rate 5
 #define flag_packets 10
 #define flag_power 15
