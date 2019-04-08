@@ -1087,226 +1087,6 @@ static int Tx_continuous(int iChannel,SlRateIndex_e rate,int iNumberOfPackets,
     UART_PRINT("Transmission complete.\r\n");
     return SUCCESS;
 }
-
-//*****************************************************************************
-//
-//! RxStatisticsCollect
-//!
-//! This function
-//!        1. Function for performing the statistics by listening on the
-//!                channel given by the user.
-//!
-//! \return none
-//
-//*****************************************************************************
-/*static int RxStatisticsCollect()
-{
-    int iSoc;
-    char acBuffer[1500];
-    SlGetRxStatResponse_t rxStatResp;
-    //char cChar;
-    int iIndex;
-    int iChannel;
-    long lRetVal = -1;
-    int iRightInput = 0;
-    char acCmdStore[512];
-    struct SlTimeval_t timeval;
-
-    timeval.tv_sec =  0;             // Seconds
-    timeval.tv_usec = 20000;         // Microseconds.
-
-    //
-    //Clear all fields to defaults
-    //
-    rxStatResp.ReceivedValidPacketsNumber = 0;
-    rxStatResp.ReceivedFcsErrorPacketsNumber = 0;
-    rxStatResp.ReceivedAddressMismatchPacketsNumber = 0;
-    rxStatResp.AvarageMgMntRssi = 0;
-    rxStatResp.AvarageDataCtrlRssi = 0;
-    for(iIndex = 0 ; iIndex < SIZE_OF_RSSI_HISTOGRAM ; iIndex++)
-    {
-        rxStatResp.RssiHistogram[iIndex] = 0;
-    }
-    for(iIndex = 0 ; iIndex < NUM_OF_RATE_INDEXES ; iIndex++)
-    {
-        rxStatResp.RateHistogram[iIndex] = 0;
-    }
-    rxStatResp.GetTimeStamp = 0;
-    rxStatResp.StartTimeStamp = 0;
-
-    //
-    //Prompt the user for channel number
-    //
-    do
-    {
-        UART_PRINT("\n\rEnter the channel to listen[1-13]:");
-        //
-        // Wait to receive a character over UART
-        //
-        lRetVal = GetCmd(acCmdStore, sizeof(acCmdStore));
-        if(lRetVal == 0)
-        {
-            //
-            // No input. Just an enter pressed probably. Display a prompt.
-            //
-            UART_PRINT("\n\rEnter Valid Input.");
-            iRightInput = 0;
-        }
-        else
-        {
-            iChannel = (int)strtoul(acCmdStore,0,10);
-            if(iChannel <= 0 || iChannel > 13)
-            {
-                UART_PRINT("\n\rWrong Input");
-                iRightInput = 0;
-            }
-            else
-            {
-                iRightInput = 1;
-            }
-        }
-
-    }while(!iRightInput);
-
-
-    UART_PRINT("\n\rPress any key to start collecting statistics...");
-
-    //
-    // Wait to receive a character over UART
-    //
-    MAP_UARTCharGet(CONSOLE);
-
-    //
-    //Start Rx statistics collection
-    //
-    lRetVal = sl_WlanRxStatStart();
-    ASSERT_ON_ERROR(lRetVal);
-
-    //
-    //Open Socket on the channel to listen
-    //
-    iSoc = sl_Socket(SL_AF_RF,SL_SOCK_RAW,iChannel);
-    ASSERT_ON_ERROR(iSoc);
-
-    // Enable receive timeout
-    lRetVal = sl_SetSockOpt(iSoc,SL_SOL_SOCKET,SL_SO_RCVTIMEO, &timeval, \
-                                  sizeof(timeval));
-    ASSERT_ON_ERROR(lRetVal);
-
-    lRetVal = sl_Recv(iSoc,acBuffer,1470,0);
-    if(lRetVal < 0 && lRetVal != SL_EAGAIN)
-    {
-        //error
-        ASSERT_ON_ERROR(sl_Close(iSoc));
-        ASSERT_ON_ERROR(lRetVal);
-    }
-
-    UART_PRINT("\n\rPress any key to stop and display the statistics...");
-
-    //
-    // Wait to receive a character over UART
-    //
-    MAP_UARTCharGet(CONSOLE);
-
-    //
-    //Get the Statistics collected in this time window
-    //
-    lRetVal = sl_WlanRxStatGet(&rxStatResp,0);
-    if(lRetVal < 0)
-    {
-        //error
-        ASSERT_ON_ERROR(sl_Close(iSoc));
-        ASSERT_ON_ERROR(lRetVal);
-    }
-
-    //
-    //Printing the collected statistics
-    //
-    UART_PRINT("\n\n\n\r\t\t=========================================== \n \
-               \r");
-    UART_PRINT("\n\r\t\t\t\tRx Statistics \n\r");
-    UART_PRINT("\t\t=========================================== \n\r");
-
-    UART_PRINT("\n\n\rThe data sampled over %ld microsec\n\n\r",    \
-               (unsigned int)(rxStatResp.GetTimeStamp -
-                              rxStatResp.StartTimeStamp));
-
-    UART_PRINT("Number of Valid Packets Received:  %d\n\r",
-                            rxStatResp.ReceivedValidPacketsNumber);
-    UART_PRINT("Number of Packets Received Packets with FCS: %d\n\r",
-                   rxStatResp.ReceivedFcsErrorPacketsNumber);
-    UART_PRINT("Number of Packets Received Packets with PLCP: %d\n\n\r",   \
-                   rxStatResp.ReceivedAddressMismatchPacketsNumber);
-    UART_PRINT("Average Rssi for management packets: %d\
-                    \n\rAverage Rssi for other packets: %d\n\r",
-                   rxStatResp.AvarageMgMntRssi,rxStatResp.AvarageDataCtrlRssi);
-    for(iIndex = 0 ; iIndex < SIZE_OF_RSSI_HISTOGRAM ; iIndex++)
-    {
-        UART_PRINT("Number of packets with RSSI in range %d dbm - %d dbm: %d\n\r",
-                     ((-40+(-8*iIndex))),((-40+(-8*(iIndex+1)))+1),
-                       rxStatResp.RssiHistogram[iIndex]);
-    }
-    UART_PRINT("\n\r");
-
-    //for(iIndex = 0 ; iIndex < NUM_OF_RATE_INDEXES ; iIndex++)
-    iIndex = 0;
-    {
-        UART_PRINT("Number of Packets with Rate 1Mbps  : %d\n\r",
-                 rxStatResp.RateHistogram[iIndex++]);
-        UART_PRINT("Number of Packets with Rate 2Mbps  : %d\n\r",
-                 rxStatResp.RateHistogram[iIndex++]);
-        UART_PRINT("Number of Packets with Rate 5.5Mbps  : %d\n\r",
-                 rxStatResp.RateHistogram[iIndex++]);
-        UART_PRINT("Number of Packets with Rate 11Mbps  : %d\n\r",
-                 rxStatResp.RateHistogram[iIndex++]);
-        UART_PRINT("Number of Packets with Rate 6Mbps  : %d\n\r",
-                 rxStatResp.RateHistogram[iIndex++]);
-        UART_PRINT("Number of Packets with Rate 9Mbps  : %d\n\r",
-                 rxStatResp.RateHistogram[iIndex++]);
-        UART_PRINT("Number of Packets with Rate 12Mbps  : %d\n\r",
-                 rxStatResp.RateHistogram[iIndex++]);
-        UART_PRINT("Number of Packets with Rate 18Mbps  : %d\n\r",
-                 rxStatResp.RateHistogram[iIndex++]);
-        UART_PRINT("Number of Packets with Rate 24Mbps  : %d\n\r",
-                 rxStatResp.RateHistogram[iIndex++]);
-        UART_PRINT("Number of Packets with Rate 36Mbps  : %d\n\r",
-                 rxStatResp.RateHistogram[iIndex++]);
-        UART_PRINT("Number of Packets with Rate 48Mbps  : %d\n\r",
-                 rxStatResp.RateHistogram[iIndex++]);
-        UART_PRINT("Number of Packets with Rate 54Mbps  : %d\n\r",
-                 rxStatResp.RateHistogram[iIndex++]);
-        UART_PRINT("Number of Packets with Rate MCS_0  : %d\n\r",
-                 rxStatResp.RateHistogram[iIndex++]);
-        UART_PRINT("Number of Packets with Rate MCS_1  : %d\n\r",
-                 rxStatResp.RateHistogram[iIndex++]);
-        UART_PRINT("Number of Packets with Rate MCS_2  : %d\n\r",
-                 rxStatResp.RateHistogram[iIndex++]);
-        UART_PRINT("Number of Packets with Rate MCS_3  : %d\n\r",
-                 rxStatResp.RateHistogram[iIndex++]);
-        UART_PRINT("Number of Packets with Rate MCS_4  : %d\n\r",
-                 rxStatResp.RateHistogram[iIndex++]);
-        UART_PRINT("Number of Packets with Rate MCS_5  : %d\n\r",
-                 rxStatResp.RateHistogram[iIndex++]);
-        UART_PRINT("Number of Packets with Rate MCS_6  : %d\n\r",
-                 rxStatResp.RateHistogram[iIndex++]);
-        UART_PRINT("Number of Packets with Rate MCS_7  : %d\n\r",
-                 rxStatResp.RateHistogram[iIndex++]);
-     }
-
-    //
-    //Stop Rx statistics collection
-    //
-    lRetVal = sl_WlanRxStatStop();
-    ASSERT_ON_ERROR(lRetVal);
-
-    //
-    //Close the socket
-    //
-    lRetVal = sl_Close(iSoc);
-    ASSERT_ON_ERROR(lRetVal);
-
-    return SUCCESS;
-}*/
 //*****************************************************************************
 // void tabulate()
 //*****************************************************************************
@@ -1331,19 +1111,9 @@ void tabulate(_u8 mac_add[6]){
    // check global mac array for repeated mac addresses
 
 }
-//*****************************************************************************
-//
-//
-//  allow_transmit()
-//
-//*****************************************************************************
-
-
 
 //*****************************************************************************
-//
 //! void interpackettiming()
-//
 //*****************************************************************************
 void interpackettiming(int NumberOfSeconds){
     int j=0;
@@ -1356,24 +1126,10 @@ void interpackettiming(int NumberOfSeconds){
     }
     UART_PRINT("\r");
 }
-//*****************************************************************************
-//
-//! main
-//!
-//! This function
-//!        1. Main function for the application.
-//!        2. Make sure there is no profile before activating this test.
-//!     3. This test is not optimized for current consumption at this stage.
-//!
-//! \return none
-//
-//*****************************************************************************
-
 
 void TransceiverModeRx (_u8 c1channel_number, _u8 source_mac[6],int mode_selector)
 {   //  remove the extra condition in the if below ( MAC )
     TransceiverRxOverHead_t *frameRadioHeader = NULL;
-    //int flag_transmit=0;
     flag_ACK=0;
     int RxTime,inf;
     int cchannel_number=c1channel_number;
@@ -1421,15 +1177,12 @@ void TransceiverModeRx (_u8 c1channel_number, _u8 source_mac[6],int mode_selecto
         frameRadioHeader = (TransceiverRxOverHead_t *)buffer;
         if( (buffer[12]==0xFF && buffer[13]==0xFF && buffer[14]==0xFF && buffer[15]==0xFF && buffer[16]==0xFF && buffer[17]==0xFF && buffer[62]==0xcc) ||
               (buffer[12]==macAddressVal[0] && buffer[13]==macAddressVal[1] && buffer[14]==macAddressVal[2] && buffer[15]==macAddressVal[3] && buffer[16]==macAddressVal[4] && buffer[17]==macAddressVal[5] && buffer[62]==0xaa)  ){
-            //flag_transmit=0;
             source_mac[0]=buffer[24];
             source_mac[1]=buffer[25];
             source_mac[2]=buffer[26];
             source_mac[3]=buffer[27];
             source_mac[4]=buffer[28];
             source_mac[5]=buffer[29];
-            /*edit*/
-            //random_backoff_delay();
             break;
 
 
@@ -1443,11 +1196,6 @@ void TransceiverModeRx (_u8 c1channel_number, _u8 source_mac[6],int mode_selecto
             UART_PRINT(" ===>>> Destination IP Address: %d.%d.%d.%d\n\r", buffer[58],  buffer[59], buffer[60],  buffer[61]);
             UART_PRINT(" ===>>> Message: %02x.%02x.%02x.%02x\n\r\n", buffer[62],  buffer[63], buffer[64],  buffer[65]);
         }
-        /*edit*/  //flag_transmit=1;
-                          //if(flag_transmit){
-                           // flag_transmit=0;
-                           // allow_transmit();
-                         // }
     }
     sl_Close(qsocket_handle);
 }
@@ -1460,43 +1208,27 @@ void TransceiverModeRx (_u8 c1channel_number, _u8 source_mac[6],int mode_selecto
 #define flag_interpackettime 2
 
 
-int main()
-{
-    //UserIn User;
+int main(){
     int iFlag = 1;
     int Source_resend_counter=0;
     long lRetVal = -1;
     char cChar;
     unsigned char policyVal;
-    //
     // Initialize Board configuration
-    //
     BoardInit();
-    
-    //
-    //
     //Pin muxing
-    //
     PinMuxConfig();
-    
     // Configuring UART
-    //
     InitTerm();
     DisplayBanner(APPLICATION_NAME);
-
     InitializeAppVariables();
-
-    //
     // Following function configure the device to default state by cleaning
     // the persistent settings stored in NVMEM (viz. connection profiles &
     // policies, power policy etc)
-    //
     // Applications may choose to skip this step if the developer is sure
     // that the device is in its default state at start of applicaton
-    //
     // Note that all profiles and persistent settings that were done on the
     // device will be lost
-    //
     lRetVal = ConfigureSimpleLinkToDefaultState();
     if(lRetVal < 0)
     {
@@ -1504,18 +1236,12 @@ int main()
           UART_PRINT("Failed to configure the device in its default state \n\r");
           LOOP_FOREVER();
     }
-
     UART_PRINT("Device is configured in default state \n\r");
-
     CLR_STATUS_BIT_ALL(g_ulStatus);
-
-    //
     // Assumption is that the device is configured in station mode already
     // and it is in its default state
-    //
     lRetVal = sl_Start(0, 0, 0);
     int i;
-
     _u8 macAddressLen = SL_MAC_ADDR_LEN;
     sl_NetCfgGet(SL_MAC_ADDRESS_GET,NULL,&macAddressLen,(unsigned char *)macAddressVal);
     UART_PRINT("MAC Address is : ");
@@ -1531,20 +1257,12 @@ int main()
         UART_PRINT("Failed to start the device \n\r");
         LOOP_FOREVER();
     }
-
     UART_PRINT("Device started as STATION \n\r");
-
-    //
     // reset all network policies
-    //
     lRetVal = sl_WlanPolicySet(  SL_POLICY_CONNECTION,
                   SL_CONNECTION_POLICY(0,0,0,0,0),
                   &policyVal,
                   1 /*PolicyValLen*/);
-    if (lRetVal < 0)
-    {
-        UART_PRINT("Failed to set policy \n\r");
-        LOOP_FOREVER();}
 
     _u8 source_mac[6]={0xff,0xff,0xff,0xff,0xff,0xff};
    while (iFlag)
@@ -1588,29 +1306,6 @@ int main()
        }
         break;
     }
-
-    UART_PRINT("\n\rEnter \"1\" to restart or \"0\" to quit: ");
-    //
-    // Wait to receive a character over UART
-    //
-    cChar = MAP_UARTCharGet(CONSOLE);
-    //
-    // Echo the received character
-    //
-    MAP_UARTCharPut(CONSOLE, cChar);
-    UART_PRINT("\n\r");
-    iFlag = atoi(&cChar);
-    }
-    UART_PRINT("\r\nEnding the application....");
-    //
-    // power off network processor
-    //
-
-
-    lRetVal = sl_Stop(SL_STOP_TIMEOUT);
-    UART_PRINT("\n\r");
-    LOOP_FOREVER();
-
 }
 
 //*****************************************************************************
