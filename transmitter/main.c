@@ -1,71 +1,7 @@
-//*****************************************************************************
-//
-// Copyright (C) 2014 Texas Instruments Incorporated - http://www.ti.com/ 
-// 
-// 
-//  Redistribution and use in source and binary forms, with or without 
-//  modification, are permitted provided that the following conditions 
-//  are met:
-//
-//    Redistributions of source code must retain the above copyright 
-//    notice, this list of conditions and the following disclaimer.
-//
-//    Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in the 
-//    documentation and/or other materials provided with the   
-//    distribution.
-//
-//    Neither the name of Texas Instruments Incorporated nor the names of
-//    its contributors may be used to endorse or promote products derived
-//    from this software without specific prior written permission.
-//
-//  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
-//  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
-//  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-//  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-//  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-//  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-//  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-//  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-//  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-//  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
-//  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
-//*****************************************************************************
-
-//*****************************************************************************
-//
-// Application Name     -   Transceiver mode
-// Application Overview -   This is a sample application demonstrating the
-//                          use of raw sockets on a CC3200 device.Based on the
-//                          user input, the application either transmits data
-//                          on the channel requested or collects Rx statistics
-//                          on the channel.
-//
-// Application Details  -
-// docs\examples\CC32xx_Transceiver_Mode.pdf
-// or
-// http://processors.wiki.ti.com/index.php/CC32xx_Transceiver_Mode
-//
-//*****************************************************************************
-
-
-//*****************************************************************************
-//
-//! \addtogroup transceiver
-//! @{
-//
-//*****************************************************************************
-
-// Standard includes
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-
-// Simplelink includes
 #include "simplelink.h"
-
-//Driverlib includes
 #include "hw_types.h"
 #include "hw_ints.h"
 #include "interrupt.h"
@@ -75,35 +11,25 @@
 #include "prcm.h"
 #include "rom.h"
 #include "rom_map.h"
-
 //Common interface includes
 #include "common.h"
 #ifndef NOTERM
 #include "uart_if.h"
 #endif
-
 #include "pinmux.h"
-
-
 #define APPLICATION_NAME        "TRANSCEIVER_MODE"
 #define APPLICATION_VERSION     "1.1.1"
-
 #define PREAMBLE            1        /* Preamble value 0- short, 1- long */
 #define CPU_CYCLES_1MSEC (80*1000)
-
 // Application specific status/error codes
 typedef enum{
     // Choosing -0x7D0 to avoid overlap w/ host-driver's error codes
     TX_CONTINUOUS_FAILED = -0x7D0,
     RX_STATISTICS_FAILED = TX_CONTINUOUS_FAILED - 1,
     DEVICE_NOT_IN_STATION_MODE = RX_STATISTICS_FAILED - 1,
-
     STATUS_CODE_MAX = -0xBB8
 }e_AppStatusCodes;
-
-
-typedef struct
-{
+typedef struct{
     int choice;
     int channel;
     int packets;
@@ -111,10 +37,6 @@ typedef struct
     int Txpower;
     int Message;
 }UserIn;
-
-//*****************************************************************************
-//                 GLOBAL VARIABLES -- Start
-//*****************************************************************************
 volatile unsigned long  g_ulStatus = 0;//SimpleLink Status
 unsigned long  g_ulGatewayIP = 0; //Network Gateway IP address
 unsigned char  g_ucConnectionSSID[SSID_LEN_MAX+1]; //Connection SSID
@@ -274,7 +196,6 @@ char Data[] = {
        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
        0x00, 0x00, 0x00, 0x00};
-
 _u8 Mac_array[6][10];
 int i_mac_array=0;
 #if defined(ccs)
@@ -283,56 +204,60 @@ extern void (* const g_pfnVectors[])(void);
 #if defined(ewarm)
 extern uVectorEntry __vector_table;
 #endif
-//*****************************************************************************
-//                 GLOBAL VARIABLES -- End
-//*****************************************************************************
-
-
 //****************************************************************************
-//                      LOCAL FUNCTION PROTOTYPES
-//****************************************************************************
-//static UserIn UserInput();
 static int Tx_continuous(int iChannel,SlRateIndex_e rate,int iNumberOfPackets,\
                                    int iTxPowerLevel,long dIntervalMiliSec,int NumberOfSeconds,int message_type, _u8  source_mac[6]);
-//static int RxStatisticsCollect();
 static void DisplayBanner(char * AppName);
 static void BoardInit(void);
 static void interpackettiming(int);
 static void tabulate(_u8 mac_add[6]);
-static void  random_backoff_delay(void);
-
-
+static void random_backoff_delay(void);
+static _u8 * Packet_to_Array(Packet);
 //*****************************************************************************
-// SimpleLink Asynchronous Event Handlers -- Start
-//*****************************************************************************
-
-
-//*****************************************************************************
+typedef struct Packet{
+    _u8 version;
+    _u8 frame_control;
+    //  mac layer
+    _u8  mac_src[6];
+    _u8  mac_dest[6];
+    _u8  mac_ack;
+    _u32 mac_packet_id;
+    //  Network layer
+    _u32 ip_src;
+    _u32 ip_dest;
+    _u32 ip_hop_count;
+    _u8  ip_hello;
+    _u32 ip_hello_id;
+    //  App layer
+    _u32 app_data;
+    _u32 app_timestamp;
+}Packet;
+//_u8 * Packet_to_Array(Packet packet){
+//    _u8 *packet_array = malloc(44 * sizeof(_u8));
+//    packet_array[0] = packet.version;
+//    packet_array[1] = packet.frame_control;
 //
-//! \brief The Function Handles WLAN Events
-//!
-//! \param[in]  pWlanEvent - Pointer to WLAN Event Info
-//!
-//! \return None
-//!
+//    packet_array[2] = packet.mac_src[0];
+//    packet_array[3] = packet.mac_src[1];
+//    packet_array[4] = packet.mac_src[2];
+//    packet_array[5] = packet.mac_src[3];
+//    packet_array[6] = packet.mac_src[4];
+//    packet_array[7] = packet.mac_src[5];
+//
+//    packet_array[8] = packet.mac_dest[0];
+//}
 //*****************************************************************************
-void SimpleLinkWlanEventHandler(SlWlanEvent_t *pWlanEvent)
-{
+void SimpleLinkWlanEventHandler(SlWlanEvent_t *pWlanEvent){
     switch(pWlanEvent->Event)
     {
         case SL_WLAN_CONNECT_EVENT:
         {
             SET_STATUS_BIT(g_ulStatus, STATUS_BIT_CONNECTION);
-
-            //
             // Information about the connected AP (like name, MAC etc) will be
             // available in 'slWlanConnectAsyncResponse_t' - Applications
             // can use it if required
-            //
             //  slWlanConnectAsyncResponse_t *pEventData = NULL;
             // pEventData = &pWlanEvent->EventData.STAandP2PModeWlanConnected;
-            //
-
             // Copy new connection SSID and BSSID to global parameters
             memcpy(g_ucConnectionSSID,pWlanEvent->EventData.
                    STAandP2PModeWlanConnected.ssid_name,
@@ -349,16 +274,12 @@ void SimpleLinkWlanEventHandler(SlWlanEvent_t *pWlanEvent)
                       g_ucConnectionBSSID[5]);
         }
         break;
-
         case SL_WLAN_DISCONNECT_EVENT:
         {
             slWlanConnectAsyncResponse_t*  pEventData = NULL;
-
             CLR_STATUS_BIT(g_ulStatus, STATUS_BIT_CONNECTION);
             CLR_STATUS_BIT(g_ulStatus, STATUS_BIT_IP_AQUIRED);
-
             pEventData = &pWlanEvent->EventData.STAandP2PModeDisconnected;
-
             // If the user has initiated 'Disconnect' request,
             //'reason_code' is SL_WLAN_DISCONNECT_USER_INITIATED_DISCONNECTION
             if(SL_WLAN_DISCONNECT_USER_INITIATED_DISCONNECTION == pEventData->reason_code)
@@ -384,7 +305,6 @@ void SimpleLinkWlanEventHandler(SlWlanEvent_t *pWlanEvent)
             memset(g_ucConnectionBSSID,0,sizeof(g_ucConnectionBSSID));
         }
         break;
-
         default:
         {
             UART_PRINT("[WLAN EVENT] Unexpected event [0x%x]\n\r",
@@ -393,7 +313,6 @@ void SimpleLinkWlanEventHandler(SlWlanEvent_t *pWlanEvent)
         break;
     }
 }
-
 //*****************************************************************************
 //
 //! \brief This function handles network events such as IP acquisition, IP
@@ -404,22 +323,17 @@ void SimpleLinkWlanEventHandler(SlWlanEvent_t *pWlanEvent)
 //! \return None
 //!
 //*****************************************************************************
-void SimpleLinkNetAppEventHandler(SlNetAppEvent_t *pNetAppEvent)
-{
+void SimpleLinkNetAppEventHandler(SlNetAppEvent_t *pNetAppEvent){
     switch(pNetAppEvent->Event)
     {
         case SL_NETAPP_IPV4_IPACQUIRED_EVENT:
         {
             SlIpV4AcquiredAsync_t *pEventData = NULL;
-
             SET_STATUS_BIT(g_ulStatus, STATUS_BIT_IP_AQUIRED);
-
             //Ip Acquired Event Data
             pEventData = &pNetAppEvent->EventData.ipAcquiredV4;
-
             //Gateway IP address
             g_ulGatewayIP = pEventData->gateway;
-
             UART_PRINT("[NETAPP EVENT] IP Acquired: IP=%d.%d.%d.%d , "
                      "Gateway=%d.%d.%d.%d\n\r",
             SL_IPV4_BYTE(pNetAppEvent->EventData.ipAcquiredV4.ip,3),
@@ -432,7 +346,6 @@ void SimpleLinkNetAppEventHandler(SlNetAppEvent_t *pNetAppEvent)
             SL_IPV4_BYTE(pNetAppEvent->EventData.ipAcquiredV4.gateway,0));
         }
         break;
-
         default:
         {
             UART_PRINT("[NETAPP EVENT] Unexpected event [0x%x] \n\r",
@@ -441,77 +354,20 @@ void SimpleLinkNetAppEventHandler(SlNetAppEvent_t *pNetAppEvent)
         break;
     }
 }
-
-
 //*****************************************************************************
-//
-//! \brief This function handles HTTP server events
-//!
-//! \param[in]  pServerEvent - Contains the relevant event information
-//! \param[in]    pServerResponse - Should be filled by the user with the
-//!                                      relevant response information
-//!
-//! \return None
-//!
-//****************************************************************************
 void SimpleLinkHttpServerCallback(SlHttpServerEvent_t *pHttpEvent,
-                                  SlHttpServerResponse_t *pHttpResponse)
-{
-    // Unused in this application
-}
-
+                                  SlHttpServerResponse_t *pHttpResponse){}
 //*****************************************************************************
-//
-//! \brief This function handles General Events
-//!
-//! \param[in]     pDevEvent - Pointer to General Event Info
-//!
-//! \return None
-//!
-//*****************************************************************************
-void SimpleLinkGeneralEventHandler(SlDeviceEvent_t *pDevEvent)
-{
-    //
-    // Most of the general errors are not FATAL are are to be handled
-    // appropriately by the application
-    //
+void SimpleLinkGeneralEventHandler(SlDeviceEvent_t *pDevEvent){
+    // Most of the general errors are not FATAL are are to be handled appropriately by the application
     UART_PRINT("[GENERAL EVENT] - ID=[%d] Sender=[%d]\n\n",
                pDevEvent->EventData.deviceEvent.status,
                pDevEvent->EventData.deviceEvent.sender);
 }
-
-
-//*****************************************************************************
-//
-//! This function handles socket events indication
-//!
-//! \param[in]      pSock - Pointer to Socket Event Info
-//!
-//! \return None
-//!
 //*****************************************************************************
 void SimpleLinkSockEventHandler(SlSockEvent_t *pSock)
 {
-    //
-    // This application doesn't work w/ socket - Events are not expected
-    //
-       
 }
-
-
-//*****************************************************************************
-// SimpleLink Asynchronous Event Handlers -- End
-//*****************************************************************************
-
-
-//*****************************************************************************
-//
-//! \brief This function initializes the application variables
-//!
-//! \param    None
-//!
-//! \return None
-//!
 //*****************************************************************************
 static void InitializeAppVariables()
 {
@@ -520,7 +376,6 @@ static void InitializeAppVariables()
     memset(g_ucConnectionSSID,0,sizeof(g_ucConnectionSSID));
     memset(g_ucConnectionBSSID,0,sizeof(g_ucConnectionBSSID));
 }
-
 //*****************************************************************************
 //! \brief This function puts the device in its default state. It:
 //!           - Set the mode to STATION
@@ -536,22 +391,17 @@ static void InitializeAppVariables()
 //! \param   none
 //! \return  On success, zero is returned. On error, negative is returned
 //*****************************************************************************
-static long ConfigureSimpleLinkToDefaultState()
-{
+static long ConfigureSimpleLinkToDefaultState(){
     SlVersionFull   ver = {0};
     _WlanRxFilterOperationCommandBuff_t  RxFilterIdMask = {0};
-
     unsigned char ucVal = 1;
     unsigned char ucConfigOpt = 0;
     unsigned char ucConfigLen = 0;
     unsigned char ucPower = 0;
-
     long lRetVal = -1;
     long lMode = -1;
-
     lMode = sl_Start(0, 0, 0);
     ASSERT_ON_ERROR(lMode);
-
     // If the device is not in station-mode, try configuring it in station-mode 
     if (ROLE_STA != lMode)
     {
@@ -566,17 +416,13 @@ static long ConfigureSimpleLinkToDefaultState()
 #endif
             }
         }
-
         // Switch to STA role and restart 
         lRetVal = sl_WlanSetMode(ROLE_STA);
         ASSERT_ON_ERROR(lRetVal);
-
         lRetVal = sl_Stop(0xFF);
         ASSERT_ON_ERROR(lRetVal);
-
         lRetVal = sl_Start(0, 0, 0);
         ASSERT_ON_ERROR(lRetVal);
-
         // Check if the device is in station again 
         if (ROLE_STA != lRetVal)
         {
@@ -584,14 +430,12 @@ static long ConfigureSimpleLinkToDefaultState()
             return DEVICE_NOT_IN_STATION_MODE;
         }
     }
-    
     // Get the device's version-information
     ucConfigOpt = SL_DEVICE_GENERAL_VERSION;
     ucConfigLen = sizeof(ver);
     lRetVal = sl_DevGet(SL_DEVICE_GENERAL_CONFIGURATION, &ucConfigOpt, 
                                 &ucConfigLen, (unsigned char *)(&ver));
     ASSERT_ON_ERROR(lRetVal);
-    
     UART_PRINT("Host Driver Version: %s\n\r",SL_DRIVER_VERSION);
     UART_PRINT("Build Version %d.%d.%d.%d.31.%d.%d.%d.%d.%d.%d.%d.%d\n\r",
     ver.NwpVersion[0],ver.NwpVersion[1],ver.NwpVersion[2],ver.NwpVersion[3],
@@ -599,20 +443,14 @@ static long ConfigureSimpleLinkToDefaultState()
     ver.ChipFwAndPhyVersion.FwVersion[2],ver.ChipFwAndPhyVersion.FwVersion[3],
     ver.ChipFwAndPhyVersion.PhyVersion[0],ver.ChipFwAndPhyVersion.PhyVersion[1],
     ver.ChipFwAndPhyVersion.PhyVersion[2],ver.ChipFwAndPhyVersion.PhyVersion[3]);
-
     // Set connection policy to Auto + SmartConfig 
     //      (Device's default connection policy)
     lRetVal = sl_WlanPolicySet(SL_POLICY_CONNECTION, 
                                 SL_CONNECTION_POLICY(1, 0, 0, 0, 1), NULL, 0);
     ASSERT_ON_ERROR(lRetVal);
-
     // Remove all profiles
     lRetVal = sl_WlanProfileDel(0xFF);
     ASSERT_ON_ERROR(lRetVal);
-
-    
-
-    //
     // Device in station-mode. Disconnect previous connection if any
     // The function returns 0 if 'Disconnected done', negative number if already
     // disconnected Wait for 'disconnection' event if 0 is returned, Ignore 
@@ -629,54 +467,35 @@ static long ConfigureSimpleLinkToDefaultState()
 #endif
         }
     }
-
     // Enable DHCP client
     lRetVal = sl_NetCfgSet(SL_IPV4_STA_P2P_CL_DHCP_ENABLE,1,1,&ucVal);
     ASSERT_ON_ERROR(lRetVal);
-
     // Disable scan
     ucConfigOpt = SL_SCAN_POLICY(0);
     lRetVal = sl_WlanPolicySet(SL_POLICY_SCAN , ucConfigOpt, NULL, 0);
     ASSERT_ON_ERROR(lRetVal);
-
     // Set Tx power level for station mode
     // Number between 0-15, as dB offset from max power - 0 will set max power
     ucPower = 0;
     lRetVal = sl_WlanSet(SL_WLAN_CFG_GENERAL_PARAM_ID, 
             WLAN_GENERAL_PARAM_OPT_STA_TX_POWER, 1, (unsigned char *)&ucPower);
     ASSERT_ON_ERROR(lRetVal);
-
     // Set PM policy to normal
     lRetVal = sl_WlanPolicySet(SL_POLICY_PM , SL_NORMAL_POLICY, NULL, 0);
     ASSERT_ON_ERROR(lRetVal);
-
     // Unregister mDNS services
     lRetVal = sl_NetAppMDNSUnRegisterService(0, 0);
     ASSERT_ON_ERROR(lRetVal);
-
     // Remove  all 64 filters (8*8)
     memset(RxFilterIdMask.FilterIdMask, 0xFF, 8);
     lRetVal = sl_WlanRxFilterSet(SL_REMOVE_RX_FILTER, (_u8 *)&RxFilterIdMask,
                        sizeof(_WlanRxFilterOperationCommandBuff_t));
     ASSERT_ON_ERROR(lRetVal);
-
     lRetVal = sl_Stop(SL_STOP_TIMEOUT);
     ASSERT_ON_ERROR(lRetVal);
-
     InitializeAppVariables();
-    
     return lRetVal; // Success
 }
-
-
-//*****************************************************************************
-//
-//! Application startup display on UART
-//!
-//! \param  AppName
-//!
-//! \return none
-//!
 //*****************************************************************************
 static void DisplayBanner(char * AppName)
 {
@@ -686,272 +505,33 @@ static void DisplayBanner(char * AppName)
     UART_PRINT("\t\t *************************************************\n\r");
     UART_PRINT("\n\n\n\r");
 }
-
-
-//*****************************************************************************
-//
-//! Board Initialization & Configuration
-//!
-//! \param  None
-//!
-//! \return None
-//
 //*****************************************************************************
 static void BoardInit(void)
 {
-/* In case of TI-RTOS vector table is initialize by OS itself */
-#ifndef USE_TIRTOS
-  //
-  // Set vector table base
-  //
-#if defined(ccs)
-    MAP_IntVTableBaseSet((unsigned long)&g_pfnVectors[0]);
-#endif
-#if defined(ewarm)
-    MAP_IntVTableBaseSet((unsigned long)&__vector_table);
-#endif
-#endif
-    //
+    /* In case of TI-RTOS vector table is initialize by OS itself */
+    #ifndef USE_TIRTOS
+    // Set vector table base
+    #if defined(ccs)
+        MAP_IntVTableBaseSet((unsigned long)&g_pfnVectors[0]);
+    #endif
+    #if defined(ewarm)
+        MAP_IntVTableBaseSet((unsigned long)&__vector_table);
+    #endif
+    #endif
     // Enable Processor
-    //
     MAP_IntMasterEnable();
     MAP_IntEnable(FAULT_SYSTICK);
-
     PRCMCC3200MCUInit();
 }
-/*
- *
- *
- *
- *
- * definition for recv buffer struct
- *
- *
- *
- */
+//*****************************************************************************
 #define BUFFER_SIZE 1472
-typedef struct
-{
+typedef struct{
     _u8   rate;
     _u8   channel;
     _i8    rssi;
     _u8   padding;
     _u32 timestamp;
-}
-
-TransceiverRxOverHead_t;
-
-
-//*****************************************************************************
-//
-//! UserInput
-//!
-//! This function
-//!        1. Function for reading the user input.
-//!
-//! \return none
-//
-//*****************************************************************************
-/*static UserIn UserInput()
-{
-    UserIn User;
-    char acCmdStore[512];
-    int iRetVal;
-    int iRightInput = 0;
-
-    do
-    {
-        UART_PRINT("\r\nOptions:\r\n1. Send packets.\r\n2. Collect statistics "
-                        "about received packets.\r\n");
-        UART_PRINT("Enter the option to use: ");
-        iRetVal = GetCmd(acCmdStore, sizeof(acCmdStore));
-        if(iRetVal == 0)
-        {
-            //
-            // No input. Just an enter pressed probably. Display a prompt.
-            //
-            UART_PRINT("\n\n\rEnter Valid Input.");
-            iRightInput = 0;
-        }
-        else
-        {
-            User.choice = (int)strtoul(acCmdStore,0,10);
-            if(User.choice != 1 && User.choice != 2)
-            {
-                UART_PRINT("\n\n\rWrong Input");
-                iRightInput = 0;
-            }
-            else
-            {
-                iRightInput = 1;
-            }
-        }
-        UART_PRINT("\n\r");
-    }while(!iRightInput);
-
-
-
-    if (User.choice == 1)
-    {
-        //channel//
-
-        do
-        {
-            UART_PRINT("Enter the channel to use[1:13]: ");
-            iRetVal = GetCmd(acCmdStore, sizeof(acCmdStore));
-            if(iRetVal == 0)
-            {
-                //
-                // No input. Just an enter pressed probably. Display a prompt.
-                //
-                UART_PRINT("\n\rEnter Valid Input.");
-                iRightInput = 0;
-            }
-            else
-            {
-                User.channel = (int)strtoul(acCmdStore,0,10);
-                if(User.channel <= 0 || User.channel > 13)
-                {
-                    UART_PRINT("\n\rWrong Input");
-                    iRightInput = 0;
-                }
-                else
-                {
-                    iRightInput = 1;
-                }
-            }
-
-            UART_PRINT("\r\n");
-        }while(!iRightInput);
-
-        //Number of packets//
-
-        do
-        {
-            UART_PRINT("Enter the number of packets to send : ");
-            iRetVal = GetCmd(acCmdStore, sizeof(acCmdStore));
-            if(iRetVal == 0)
-            {
-                //
-                // No input. Just an enter pressed probably. Display a prompt.
-                //
-                UART_PRINT("\n\rEnter Valid Input.");
-                iRightInput = 0;
-            }
-            else
-            {
-                User.packets = (int)strtoul(acCmdStore,0,10);
-                if(User.packets <= 0 && User.packets > 65535)
-                {
-                    UART_PRINT("\n\rWrong Input");
-                    iRightInput = 0;
-                }
-                else
-                {
-                    iRightInput = 1;
-                }
-            }
-            UART_PRINT("\r\n");
-        }while(!iRightInput);
-
-        //Rate//
-
-        do
-        {
-            UART_PRINT("Enter the rate: ");
-            iRetVal = GetCmd(acCmdStore, sizeof(acCmdStore));
-            if(iRetVal == 0)
-            {
-                //
-                // No input. Just an enter pressed probably. Display a prompt.
-                //
-                UART_PRINT("\n\rEnter Valid Input.");
-                iRightInput = 0;
-            }
-            else
-            {
-                User.rate = (SlRateIndex_e)strtoul(acCmdStore,0,10);
-                if(User.rate < RATE_1M || User.rate > RATE_MCS_7)
-                {
-                    UART_PRINT("\n\rWrong Input");
-                    iRightInput = 0;
-                }
-                else
-                {
-                    iRightInput = 1;
-                }
-            }
-
-            UART_PRINT("\r\n");
-        }while(!iRightInput);
-        // Tx Power level //
-
-        do
-        {
-            UART_PRINT("Enter the Tx power[0:15]: ");
-            iRetVal = GetCmd(acCmdStore, sizeof(acCmdStore));
-            if(iRetVal == 0)
-            {
-                //
-                // No input. Just an enter pressed probably. Display a prompt.
-                //
-                UART_PRINT("\n\rEnter Valid Input.");
-                iRightInput = 0;
-            }
-            else
-            {
-                User.Txpower = (int)strtoul(acCmdStore,0,10);
-                if(User.Txpower < 0 || User.Txpower > 15)
-                {
-                    UART_PRINT("\n\rWrong Input");
-                    iRightInput = 0;
-                }
-                else
-                {
-                    iRightInput = 1;
-                }
-            }
-
-            UART_PRINT("\r\n");
-        }while(!iRightInput);
-        //  Message type//
-
-        do
-                {
-                    UART_PRINT("Enter the Message[0:3]: ");
-                    iRetVal = GetCmd(acCmdStore, sizeof(acCmdStore));
-                    if(iRetVal == 0)
-                    {
-                        //
-                        // No input. Just an enter pressed probably. Display a prompt.
-                        //
-                        UART_PRINT("\n\rEnter Valid Input.");
-                        iRightInput = 0;
-                    }
-                    else
-                    {
-                        User.Message = (int)strtoul(acCmdStore,0,10);
-                        if(User.Message < 0 || User.Message > 3)
-                        {
-                            UART_PRINT("\n\rWrong Input");
-                            iRightInput = 0;
-                        }
-                        else
-                        {
-                            iRightInput = 1;
-                        }
-                    }
-
-                    UART_PRINT("\r\n");
-                }while(!iRightInput);
-    }
-
-    return User;
-}*/
-//*****************************************************************************
-//
-//  random_backoff_delay (void)
-//
+}TransceiverRxOverHead_t;
 //*****************************************************************************
 void random_backoff_delay(void){
     srand((macAddressVal[0]*macAddressVal[1])%RAND_MAX);
@@ -968,19 +548,8 @@ void random_backoff_delay(void){
     }
 }
 //*****************************************************************************
-//
-//! Tx_continuous
-//!
-//! This function
-//!        1. Function for sending out pinging data on the
-//!                channel given by the user.
-//!
-//! \return none
-//
-//*****************************************************************************
 static int Tx_continuous(int iChannel,SlRateIndex_e rate,int iNumberOfPackets,
-                                    int iTxPowerLevel,long dIntervalMiliSec,int NumberOfSeconds, int message_type, _u8  source_mac[6])
-{
+                                    int iTxPowerLevel,long dIntervalMiliSec,int NumberOfSeconds, int message_type, _u8  source_mac[6]){
     int iSoc;
     long lRetVal = -1;
     long ulIndex;
@@ -1087,8 +656,85 @@ static int Tx_continuous(int iChannel,SlRateIndex_e rate,int iNumberOfPackets,
     UART_PRINT("Transmission complete.\r\n");
     return SUCCESS;
 }
-//*****************************************************************************
-// void tabulate()
+
+static int transmit(int iChannel,SlRateIndex_e rate,int iNumberOfPackets,
+                                    int iTxPowerLevel,long dIntervalMiliSec,int NumberOfSeconds, int message_type, _u8  source_mac[6]){
+    Packet * message = (Packet *) malloc(sizeof(Packet));
+    int index;
+    UART_PRINT("Message Source MAC is : ");
+    for(index=0; index<6; index++){
+        message->mac_src[index] = macAddressVal[index];
+        message->mac_dest[index] = source_mac[index];
+        UART_PRINT("%X", message->mac_src[index]);
+        if(index+16<21)
+            UART_PRINT(".");
+    }
+    UART_PRINT("\r\n");
+
+    int iSoc;
+    long lRetVal = -1;
+    long ulIndex;
+    _u8 buffer[1470] = {'\0'};
+
+
+//    switch(message_type){
+//        case 0://ping
+//            for(index=0;index<sizeof(message);index++){
+//                message[index]=RawData_Ping[index];
+//            }
+//            break;
+//        case 1://hello
+//                message.ip_hello=1;
+//            break;
+//        case 2://ack
+//            for(index=0;index<sizeof(message);index++){
+//                message[index]=ACK[index];
+//            }
+//            UART_PRINT("preparaing ACK ");
+//            break;
+//        case 3://data
+//            for(index=0;index<sizeof(message);index++){
+//                message[index]=Data[index];
+//            }
+//            break;
+//    }
+
+
+
+    iSoc = sl_Socket(SL_AF_RF,SL_SOCK_RAW,iChannel);
+    ASSERT_ON_ERROR(iSoc);
+//  while loop for recv and backoff
+    memset(&buffer[0], 0, sizeof(buffer));
+    lRetVal = sl_Recv(iSoc, buffer, 1470, 0);
+    UART_PRINT("lRetVal 1 is    ");
+    UART_PRINT("%d \n\r",lRetVal);
+    while(lRetVal==0 || lRetVal == SL_EAGAIN){
+        lRetVal = sl_Recv(iSoc, buffer, 1470, 0);
+        UART_PRINT("lRetVal loop is    ");
+        UART_PRINT("%d",lRetVal);
+        random_backoff_delay();
+    }
+    UART_PRINT("Transmitting data...\r\n");
+    for(ulIndex = 0 ; ulIndex < iNumberOfPackets ; ulIndex++)
+    {
+        lRetVal = sl_Send(iSoc,message,sizeof(message),\
+                   SL_RAW_RF_TX_PARAMS(iChannel,  rate, iTxPowerLevel, PREAMBLE));
+        interpackettiming(NumberOfSeconds);
+        if(lRetVal < 0)
+        {
+            sl_Close(iSoc);
+            ASSERT_ON_ERROR(lRetVal);
+        }
+        //Sleep(dIntervalMiliSec);
+        MAP_UtilsDelay(4000000);
+    }
+
+    lRetVal = sl_Close(iSoc);
+    ASSERT_ON_ERROR(lRetVal);
+
+    UART_PRINT("Transmission complete.\r\n");
+    return SUCCESS;
+}
 //*****************************************************************************
 void tabulate(_u8 mac_add[6]){
     int j,i;
@@ -1111,9 +757,6 @@ void tabulate(_u8 mac_add[6]){
    // check global mac array for repeated mac addresses
 
 }
-
-//*****************************************************************************
-//! void interpackettiming()
 //*****************************************************************************
 void interpackettiming(int NumberOfSeconds){
     int j=0;
@@ -1126,7 +769,7 @@ void interpackettiming(int NumberOfSeconds){
     }
     UART_PRINT("\r");
 }
-
+//*****************************************************************************
 void TransceiverModeRx (_u8 c1channel_number, _u8 source_mac[6],int mode_selector)
 {   //  remove the extra condition in the if below ( MAC )
     TransceiverRxOverHead_t *frameRadioHeader = NULL;
@@ -1171,7 +814,6 @@ void TransceiverModeRx (_u8 c1channel_number, _u8 source_mac[6],int mode_selecto
     }
     while(inf)    //ppkts_to_receive--
     {
-
         memset(&buffer[0], 0, sizeof(buffer));
         recievedBytes = sl_Recv(qsocket_handle, buffer, BUFFER_SIZE, 0);
         frameRadioHeader = (TransceiverRxOverHead_t *)buffer;
@@ -1184,8 +826,6 @@ void TransceiverModeRx (_u8 c1channel_number, _u8 source_mac[6],int mode_selecto
             source_mac[4]=buffer[28];
             source_mac[5]=buffer[29];
             break;
-
-
         }
         if(buffer[12]==0xd4 || buffer[12]==0xf4 || (buffer[12]==0xff && buffer[62]==0xcc)){
             UART_PRINT(" ===>>> Timestamp: %iuS, Signal Strength: %idB\n\r", frameRadioHeader->timestamp, frameRadioHeader->rssi);
@@ -1199,7 +839,7 @@ void TransceiverModeRx (_u8 c1channel_number, _u8 source_mac[6],int mode_selecto
     }
     sl_Close(qsocket_handle);
 }
-
+//*****************************************************************************
 #define flag_function 1//1: SINK, 2: SOURCE
 #define flag_channel 1
 #define flag_rate 5
@@ -1207,34 +847,26 @@ void TransceiverModeRx (_u8 c1channel_number, _u8 source_mac[6],int mode_selecto
 #define flag_power 15
 #define flag_interpackettime 2
 
-
 int main(){
     int iFlag = 1;
     int Source_resend_counter=0;
     long lRetVal = -1;
     char cChar;
     unsigned char policyVal;
-    // Initialize Board configuration
-    BoardInit();
-    //Pin muxing
-    PinMuxConfig();
-    // Configuring UART
-    InitTerm();
+    BoardInit();// Initialize Board configuration
+    PinMuxConfig();//Pin muxing
+    InitTerm();// Configuring UART
     DisplayBanner(APPLICATION_NAME);
     InitializeAppVariables();
-    // Following function configure the device to default state by cleaning
-    // the persistent settings stored in NVMEM (viz. connection profiles &
-    // policies, power policy etc)
-    // Applications may choose to skip this step if the developer is sure
-    // that the device is in its default state at start of applicaton
-    // Note that all profiles and persistent settings that were done on the
-    // device will be lost
+    // Following function configure the device to default state by cleaning the persistent settings stored in NVMEM (viz. connection profiles & policies, power policy etc)
+    // Applications may choose to skip this step if the developer is sure that the device is in its default state at start of applicaton
+    // Note that all profiles and persistent settings that were done on the device will be lost
     lRetVal = ConfigureSimpleLinkToDefaultState();
     if(lRetVal < 0)
     {
         if (DEVICE_NOT_IN_STATION_MODE == lRetVal)
-          UART_PRINT("Failed to configure the device in its default state \n\r");
-          LOOP_FOREVER();
+            UART_PRINT("Failed to configure the device in its default state \n\r");
+        LOOP_FOREVER();
     }
     UART_PRINT("Device is configured in default state \n\r");
     CLR_STATUS_BIT_ALL(g_ulStatus);
@@ -1246,10 +878,9 @@ int main(){
     sl_NetCfgGet(SL_MAC_ADDRESS_GET,NULL,&macAddressLen,(unsigned char *)macAddressVal);
     UART_PRINT("MAC Address is : ");
     for(i = 0; i < macAddressLen; i++) {
-         UART_PRINT("%d",(unsigned char)macAddressVal[i]);
-         if(i<macAddressLen-1){
-             UART_PRINT(".");
-         }
+        UART_PRINT("%d",(unsigned char)macAddressVal[i]);
+        if(i<macAddressLen-1)
+            UART_PRINT(".");
     }
     UART_PRINT("\n\r");
     if (lRetVal < 0 || ROLE_STA != lRetVal)
@@ -1260,57 +891,49 @@ int main(){
     UART_PRINT("Device started as STATION \n\r");
     // reset all network policies
     lRetVal = sl_WlanPolicySet(  SL_POLICY_CONNECTION,
-                  SL_CONNECTION_POLICY(0,0,0,0,0),
-                  &policyVal,
-                  1 /*PolicyValLen*/);
-
+    SL_CONNECTION_POLICY(0,0,0,0,0),
+    &policyVal,
+    1 /*PolicyValLen*/);
     _u8 source_mac[6]={0xff,0xff,0xff,0xff,0xff,0xff};
-   while (iFlag)
-    {
-    switch(flag_function){
-    case(1)://SINK node;
-        lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, flag_interpackettime, 1,source_mac);
-        if(lRetVal < 0)
-        {
-            UART_PRINT("Error during transmission of raw data\n\r");
-            LOOP_FOREVER();
-        }
-        TransceiverModeRx(flag_channel, source_mac,1);
-        UART_PRINT("Recieved Ack\n\r");
-        tabulate(source_mac);
+    while (iFlag){
+        switch(flag_function){
+            case(1)://SINK node;
+                lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, flag_interpackettime, 1,source_mac);
+                if(lRetVal < 0)
+                {
+                UART_PRINT("Error during transmission of raw data\n\r");
+                LOOP_FOREVER();
+                }
+                TransceiverModeRx(flag_channel, source_mac,1);
+                UART_PRINT("Recieved Ack\n\r");
+                tabulate(source_mac);
 
-        lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, flag_interpackettime, 1,source_mac);
-        break;
-    case(2)://SOURCE node
-        TransceiverModeRx(flag_channel, source_mac,0);
-        UART_PRINT("Recieved Hello\n\r");
-      //waiting for hello
-        interpackettiming((flag_interpackettime+1));
-        lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, flag_interpackettime, 2, source_mac);
-        UART_PRINT("Sent Ack\n\r");
-        TransceiverModeRx(flag_channel, source_mac,0);
-       UART_PRINT("Recieved Request\n\r");
-      //waiting for request
-        interpackettiming((flag_interpackettime+1));
-        lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, flag_interpackettime, 2, source_mac);
-        UART_PRINT("Sent Data\n\r");
-        TransceiverModeRx(flag_channel, source_mac,1);
-       UART_PRINT("Recieved Ack\n\r");
-        //  change UART_PRINT(ACK) to proper location in RX function and Resend data
-       Source_resend_counter=0;
-       while((!flag_ACK)&&(Source_resend_counter<5)){
-       lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, flag_interpackettime, 2, source_mac);
-       UART_PRINT("Sent Data\n\r");
-       TransceiverModeRx(flag_channel, source_mac,1);
-       Source_resend_counter++;
-       }
-        break;
+                lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, flag_interpackettime, 1,source_mac);
+                break;
+            case(2)://SOURCE node
+                TransceiverModeRx(flag_channel, source_mac,0);
+                UART_PRINT("Recieved Hello\n\r");
+                //waiting for hello
+                interpackettiming((flag_interpackettime+1));
+                lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, flag_interpackettime, 2, source_mac);
+                UART_PRINT("Sent Ack\n\r");
+                TransceiverModeRx(flag_channel, source_mac,0);
+                UART_PRINT("Recieved Request\n\r");
+                //waiting for request
+                interpackettiming((flag_interpackettime+1));
+                lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, flag_interpackettime, 2, source_mac);
+                UART_PRINT("Sent Data\n\r");
+                TransceiverModeRx(flag_channel, source_mac,1);
+                UART_PRINT("Recieved Ack\n\r");
+                //  change UART_PRINT(ACK) to proper location in RX function and Resend data
+                Source_resend_counter=0;
+                while((!flag_ACK)&&(Source_resend_counter<5)){
+                    lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, flag_interpackettime, 2, source_mac);
+                    UART_PRINT("Sent Data\n\r");
+                    TransceiverModeRx(flag_channel, source_mac,1);
+                    Source_resend_counter++;
+                }
+                break;
+        }
     }
 }
-
-//*****************************************************************************
-//
-// Close the Doxygen group.
-//! @}
-//
-//*****************************************************************************
