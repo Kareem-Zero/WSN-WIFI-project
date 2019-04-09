@@ -777,6 +777,15 @@ static int transmit(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
         random_backoff_delay();
     }
     UART_PRINT("Transmitting data...\r\n");
+
+    UART_PRINT("\r\n");
+    int j=0;
+    for(j=0; j< sizeof(Packet)-1; j++){
+                UART_PRINT("%02x\t\t", ((_u8 *)&message)[j]);
+            }
+    UART_PRINT("\r\n");
+    UART_PRINT("\r\n");
+
     for (ulIndex = 0; ulIndex < iNumberOfPackets; ulIndex++)
     {
         lRetVal = sl_Send(
@@ -967,15 +976,26 @@ void Receive(_u8 c1channel_number, _u8 source_mac[6], int mode_selector)
     };
     int i = 0;
     Packet buffer;
-//    while(1){
-//        memset(&buffer, 0, sizeof(Packet));
-//            recievedBytes = sl_Recv(qsocket_handle, (void *) &buffer, sizeof(Packet), 0);
-//        frameRadioHeader = (TransceiverRxOverHead_t *) (void *) &buffer;
-//        int j=0;
-//        for(j=0; j< sizeof(Packet); j++){
-//            UART_PRINT(" ===>>> Source MAC Address: %02x:%02x:%02x:%02x:%02x:%02x\n\r", buffer.mac_src[0], buffer.mac_src[1], buffer.mac_src[2], buffer.mac_src[3], buffer.mac_src[4], buffer.mac_src[5]);
-//        }
-//    }
+    while(1){
+        memset(&buffer, 0, sizeof(Packet));
+            recievedBytes = sl_Recv(qsocket_handle, (void *) &buffer, sizeof(Packet), 0);
+        frameRadioHeader = (TransceiverRxOverHead_t *) (void *) &buffer;
+        int j=0;
+        int x=0;
+        for(j=0; j< sizeof(Packet)-1; j++){
+            UART_PRINT("%02x\t", ((_u8 *)&buffer)[j]);
+            if (((_u8 *)&buffer)[j] == 0xd4 && ((_u8 *)&buffer)[j+1] == 0x36){
+                UART_PRINT("\n\r\n\r\n\r\n\r");
+                UART_PRINT("///////////////////////////");
+                UART_PRINT("\n\r\n\r\n\r\n\r");
+                x=1;
+            }
+        }
+        UART_PRINT("\n\r\n\r");
+        if (x){
+            return;
+        }
+    }
     while (i < (4000000 * RxTime))
     {    //ppkts_to_receive--
         i++;
@@ -1031,7 +1051,7 @@ void Receive(_u8 c1channel_number, _u8 source_mac[6], int mode_selector)
 }
 //*****************************************************************************
 #define flag_function 2//1: SINK, 2: SOURCE
-#define flag_channel 1
+#define flag_channel 2
 #define flag_rate 5
 #define flag_packets 10
 #define flag_power 15
@@ -1115,6 +1135,7 @@ int main()
         case (2):    //SOURCE node
             UART_PRINT(
                     "\n\r//////////////////////   SOURCE MODE \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \n\r\n\r");
+        UART_PRINT("size of Packet = %d \n\r",sizeof(Packet));
         Receive(flag_channel, source_mac, 0);
             UART_PRINT("Recieved Hello\n\r");
             //waiting for hello
