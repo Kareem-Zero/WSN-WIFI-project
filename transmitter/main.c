@@ -765,13 +765,13 @@ static int transmit(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
 //  while loop for recv and backoff
     Packet buffer;
     memset(&buffer, 0, sizeof(Packet));
-    lRetVal = sl_Recv(iSoc, (void *) &buffer, sizeof(Packet), 0);
+    lRetVal = sl_Recv(iSoc, (_u8 *) &buffer, sizeof(Packet), 0);
     UART_PRINT("lRetVal 1 is    ");
     UART_PRINT("%d \n\r", lRetVal);
     while (lRetVal == 0 || lRetVal == SL_EAGAIN)
     {
         memset(&buffer, 0, sizeof(Packet));
-        lRetVal = sl_Recv(iSoc, (void *) &buffer, sizeof(Packet), 0);
+        lRetVal = sl_Recv(iSoc, (_u8 *) &buffer, sizeof(Packet), 0);
         UART_PRINT("lRetVal loop is    ");
         UART_PRINT("%d", lRetVal);
         random_backoff_delay();
@@ -789,7 +789,7 @@ static int transmit(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
     for (ulIndex = 0; ulIndex < iNumberOfPackets; ulIndex++)
     {
         lRetVal = sl_Send(
-                iSoc, (void *) &message, sizeof(Packet),
+                iSoc, (_u8 *) &message, sizeof(Packet),
                 SL_RAW_RF_TX_PARAMS(iChannel, rate, iTxPowerLevel, PREAMBLE));
         interpackettiming(NumberOfSeconds);
         if (lRetVal < 0)
@@ -978,8 +978,8 @@ void Receive(_u8 c1channel_number, _u8 source_mac[6], int mode_selector)
     Packet buffer;
     while(1){
         memset(&buffer, 0, sizeof(Packet));
-            recievedBytes = sl_Recv(qsocket_handle, (void *) &buffer, sizeof(Packet), 0);
-        frameRadioHeader = (TransceiverRxOverHead_t *) (void *) &buffer;
+            recievedBytes = sl_Recv(qsocket_handle, (_u8 *) &buffer, sizeof(Packet), 0);
+        frameRadioHeader = (TransceiverRxOverHead_t *) (_u8 *) &buffer;
         int j=0;
         int x=0;
         for(j=0; j< sizeof(Packet)-1; j++){
@@ -1000,8 +1000,8 @@ void Receive(_u8 c1channel_number, _u8 source_mac[6], int mode_selector)
     {    //ppkts_to_receive--
         i++;
         memset(&buffer, 0, sizeof(Packet));
-        recievedBytes = sl_Recv(qsocket_handle, (void *) &buffer, sizeof(Packet), 0);
-        frameRadioHeader = (TransceiverRxOverHead_t *) (void *) &buffer;
+        recievedBytes = sl_Recv(qsocket_handle, (_u8 *) &buffer, sizeof(Packet), 0);
+        frameRadioHeader = (TransceiverRxOverHead_t *) (_u8 *) &buffer;
         if (buffer.mac_dest[0] == macAddressVal[0]
                 && buffer.mac_dest[1] == macAddressVal[1]
                 && buffer.mac_dest[2] == macAddressVal[2]
@@ -1019,9 +1019,9 @@ void Receive(_u8 c1channel_number, _u8 source_mac[6], int mode_selector)
     while (inf)    //ppkts_to_receive--
     {
         memset(&buffer, 0, sizeof(Packet));
-        recievedBytes = sl_Recv(qsocket_handle, (void *) &buffer, sizeof(Packet), 0);
+        recievedBytes = sl_Recv(qsocket_handle, (_u8 *) &buffer, sizeof(Packet), 0);
         UART_PRINT("recievedBytes: %d",recievedBytes);
-        frameRadioHeader = (TransceiverRxOverHead_t *) (void *) &buffer;
+        frameRadioHeader = (TransceiverRxOverHead_t *) (_u8 *) &buffer;
         if ((buffer.mac_dest[0] == 0xFF && buffer.mac_dest[1] == 0xFF
                 && buffer.mac_dest[2] == 0xFF && buffer.mac_dest[3] == 0xFF
                 && buffer.mac_dest[4] == 0xFF && buffer.mac_dest[5] == 0xFF
