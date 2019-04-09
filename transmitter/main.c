@@ -780,7 +780,7 @@ static int transmit(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
     for (ulIndex = 0; ulIndex < iNumberOfPackets; ulIndex++)
     {
         lRetVal = sl_Send(
-                iSoc, (void *) &message, sizeof(message),
+                iSoc, (void *) &message, sizeof(Packet),
                 SL_RAW_RF_TX_PARAMS(iChannel, rate, iTxPowerLevel, PREAMBLE));
         interpackettiming(NumberOfSeconds);
         if (lRetVal < 0)
@@ -1029,7 +1029,7 @@ void Receive(_u8 c1channel_number, _u8 source_mac[6], int mode_selector)
     sl_Close(qsocket_handle);
 }
 //*****************************************************************************
-#define flag_function 1//1: SINK, 2: SOURCE
+#define flag_function 2//1: SINK, 2: SOURCE
 #define flag_channel 1
 #define flag_rate 5
 #define flag_packets 10
