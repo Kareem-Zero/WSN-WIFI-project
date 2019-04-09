@@ -1084,7 +1084,7 @@ int main()
         case (1):    //SINK node;
             UART_PRINT(
                     "\n\r//////////////////////   SINK MODE \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \n\r\n\r");
-            lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0,
+            lRetVal = transmit(flag_channel, flag_rate, 1, flag_power, 0,
                                     flag_interpackettime, 1, source_mac);
             if (lRetVal < 0)
             {
@@ -1092,40 +1092,40 @@ int main()
                 LOOP_FOREVER()
                 ;
             }
-            TransceiverModeRx(flag_channel, source_mac, 1);
+            Receive(flag_channel, source_mac, 1);
             UART_PRINT("Recieved Ack\n\r");
             tabulate(source_mac);
 
-            lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0,
+            lRetVal = transmit(flag_channel, flag_rate, 1, flag_power, 0,
                                     flag_interpackettime, 1, source_mac);
             break;
         case (2):    //SOURCE node
             UART_PRINT(
                     "\n\r//////////////////////   SOURCE MODE \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \n\r\n\r");
-            TransceiverModeRx(flag_channel, source_mac, 0);
+        Receive(flag_channel, source_mac, 0);
             UART_PRINT("Recieved Hello\n\r");
             //waiting for hello
             interpackettiming((flag_interpackettime + 1));
-            lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0,
+            lRetVal = transmit(flag_channel, flag_rate, 1, flag_power, 0,
                                     flag_interpackettime, 2, source_mac);
             UART_PRINT("Sent Ack\n\r");
-            TransceiverModeRx(flag_channel, source_mac, 0);
+            Receive(flag_channel, source_mac, 0);
             UART_PRINT("Recieved Request\n\r");
             //waiting for request
             interpackettiming((flag_interpackettime + 1));
-            lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0,
+            lRetVal = transmit(flag_channel, flag_rate, 1, flag_power, 0,
                                     flag_interpackettime, 2, source_mac);
             UART_PRINT("Sent Data\n\r");
-            TransceiverModeRx(flag_channel, source_mac, 1);
+            Receive(flag_channel, source_mac, 1);
             UART_PRINT("Recieved Ack\n\r");
             //  change UART_PRINT(ACK) to proper location in RX function and Resend data
             Source_resend_counter = 0;
             while ((!flag_ACK) && (Source_resend_counter < 5))
             {
-                lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power,
+                lRetVal = transmit(flag_channel, flag_rate, 1, flag_power,
                                         0, flag_interpackettime, 2, source_mac);
                 UART_PRINT("Sent Data\n\r");
-                TransceiverModeRx(flag_channel, source_mac, 1);
+                Receive(flag_channel, source_mac, 1);
                 Source_resend_counter++;
             }
             break;
