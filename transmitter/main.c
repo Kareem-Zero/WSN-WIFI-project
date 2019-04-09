@@ -742,6 +742,12 @@ static int transmit(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
 //            }
         break;
     case 1: //hello
+        message.mac_dest[0]=0xff;
+        message.mac_dest[1]=0xff;
+        message.mac_dest[2]=0xff;
+        message.mac_dest[3]=0xff;
+        message.mac_dest[4]=0xff;
+        message.mac_dest[5]=0xff;
         message.ip_hello = 1;
         message.ip_hello_id = 5;
         break;
