@@ -713,14 +713,14 @@ static int transmit(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
                     int iTxPowerLevel, long dIntervalMiliSec,
                     int NumberOfSeconds, int message_type, _u8 source_mac[6])
 {
-    Packet * message = (Packet *) malloc(sizeof(Packet));
+    Packet message;
     int index;
     UART_PRINT("Message Source MAC is : ");
     for (index = 0; index < 6; index++)
     {
-        message->mac_src[index] = macAddressVal[index];
-        message->mac_dest[index] = source_mac[index];
-        UART_PRINT("%X", message->mac_src[index]);
+        message.mac_src[index] = macAddressVal[index];
+        message.mac_dest[index] = source_mac[index];
+        UART_PRINT("%X", message.mac_src[index]);
         if (index + 16 < 21)
             UART_PRINT(".");
     }
@@ -730,9 +730,9 @@ static int transmit(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
     long lRetVal = -1;
     long ulIndex;
 
-    message->mac_packet_id = 6;
-    message->version = 1;
-    message->frame_control = 2;
+    message.mac_packet_id = 6;
+    message.version = 1;
+    message.frame_control = 2;
 
     switch (message_type)
     {
@@ -742,30 +742,30 @@ static int transmit(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
 //            }
         break;
     case 1: //hello
-        message->ip_hello = 1;
-        message->ip_hello_id = 5;
+        message.ip_hello = 1;
+        message.ip_hello_id = 5;
         break;
     case 2: //ack
-        message->mac_ack = 1;
+        message.mac_ack = 1;
         break;
     case 3: //data
-        message->app_data = 66;
-        message->app_timestamp = 5124;
+        message.app_data = 66;
+        message.app_timestamp = 5124;
         break;
     }
 
     iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, iChannel);
     ASSERT_ON_ERROR(iSoc);
 //  while loop for recv and backoff
-    Packet * buffer = (Packet *) malloc(sizeof(Packet));
+    Packet buffer;
     memset(&buffer, 0, sizeof(Packet));
-    lRetVal = sl_Recv(iSoc, buffer, sizeof(Packet), 0);
+    lRetVal = sl_Recv(iSoc, (void *) &buffer, sizeof(Packet), 0);
     UART_PRINT("lRetVal 1 is    ");
     UART_PRINT("%d \n\r", lRetVal);
     while (lRetVal == 0 || lRetVal == SL_EAGAIN)
     {
         memset(&buffer, 0, sizeof(Packet));
-        lRetVal = sl_Recv(iSoc, buffer, sizeof(Packet), 0);
+        lRetVal = sl_Recv(iSoc, (void *) &buffer, sizeof(Packet), 0);
         UART_PRINT("lRetVal loop is    ");
         UART_PRINT("%d", lRetVal);
         random_backoff_delay();
@@ -774,7 +774,7 @@ static int transmit(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
     for (ulIndex = 0; ulIndex < iNumberOfPackets; ulIndex++)
     {
         lRetVal = sl_Send(
-                iSoc, message, sizeof(Packet),
+                iSoc, (void *) &message, sizeof(message),
                 SL_RAW_RF_TX_PARAMS(iChannel, rate, iTxPowerLevel, PREAMBLE));
         interpackettiming(NumberOfSeconds);
         if (lRetVal < 0)
