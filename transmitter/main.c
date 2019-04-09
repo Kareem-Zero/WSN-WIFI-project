@@ -961,15 +961,14 @@ void Receive(_u8 c1channel_number, _u8 source_mac[6], int mode_selector)
     };
     int i = 0;
 //    _u8 buffer[BUFFER_SIZE] = {'\0'};
-    Packet * buffer = (Packet *) malloc(sizeof(Packet));
-    _u8 * ptr = buffer;
+    Packet buffer;
     while(1){
         memset(&buffer, 0, sizeof(Packet));
-            recievedBytes = sl_Recv(qsocket_handle, buffer, sizeof(Packet), 0);
-        frameRadioHeader = (TransceiverRxOverHead_t *) buffer;
+            recievedBytes = sl_Recv(qsocket_handle, (void *) &buffer, sizeof(Packet), 0);
+        frameRadioHeader = (TransceiverRxOverHead_t *) (void *) &buffer;
         int j=0;
         for(j=0; j< sizeof(Packet); j++){
-            UART_PRINT(ptr[j]);
+            UART_PRINT(" ===>>> Source MAC Address: %02x:%02x:%02x:%02x:%02x:%02x\n\r", buffer.mac_src[0], buffer.mac_src[1], buffer.mac_src[2], buffer.mac_src[3], buffer.mac_src[4], buffer.mac_src[5]);
         }
     }
 //    while (i < (4000000 * RxTime))
@@ -1025,7 +1024,7 @@ void Receive(_u8 c1channel_number, _u8 source_mac[6], int mode_selector)
     sl_Close(qsocket_handle);
 }
 //*****************************************************************************
-#define flag_function 2//1: SINK, 2: SOURCE
+#define flag_function 1//1: SINK, 2: SOURCE
 #define flag_channel 1
 #define flag_rate 5
 #define flag_packets 10
