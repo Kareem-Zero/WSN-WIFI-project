@@ -708,12 +708,12 @@ static int Tx_continuous(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
     UART_PRINT("Transmission complete.\r\n");
     return SUCCESS;
 }
-
+Packet message;
 static int transmit(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
                     int iTxPowerLevel, long dIntervalMiliSec,
                     int NumberOfSeconds, int message_type, _u8 source_mac[6])
 {
-    Packet message;
+    memset(&message, 0, sizeof(Packet));
     int index;
     UART_PRINT("Message Source MAC is : ");
     for (index = 0; index < 6; index++)
@@ -1000,6 +1000,7 @@ void Receive(_u8 c1channel_number, _u8 source_mac[6], int mode_selector)
     {
         memset(&buffer, 0, sizeof(Packet));
         recievedBytes = sl_Recv(qsocket_handle, (void *) &buffer, sizeof(Packet), 0);
+        UART_PRINT("recievedBytes: %d",recievedBytes);
         frameRadioHeader = (TransceiverRxOverHead_t *) (void *) &buffer;
         if ((buffer.mac_dest[0] == 0xFF && buffer.mac_dest[1] == 0xFF
                 && buffer.mac_dest[2] == 0xFF && buffer.mac_dest[3] == 0xFF
