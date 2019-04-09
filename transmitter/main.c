@@ -960,67 +960,66 @@ void Receive(_u8 c1channel_number, _u8 source_mac[6], int mode_selector)
         inf = 0;
     };
     int i = 0;
-//    _u8 buffer[BUFFER_SIZE] = {'\0'};
     Packet buffer;
-    while(1){
+//    while(1){
+//        memset(&buffer, 0, sizeof(Packet));
+//            recievedBytes = sl_Recv(qsocket_handle, (void *) &buffer, sizeof(Packet), 0);
+//        frameRadioHeader = (TransceiverRxOverHead_t *) (void *) &buffer;
+//        int j=0;
+//        for(j=0; j< sizeof(Packet); j++){
+//            UART_PRINT(" ===>>> Source MAC Address: %02x:%02x:%02x:%02x:%02x:%02x\n\r", buffer.mac_src[0], buffer.mac_src[1], buffer.mac_src[2], buffer.mac_src[3], buffer.mac_src[4], buffer.mac_src[5]);
+//        }
+//    }
+    while (i < (4000000 * RxTime))
+    {    //ppkts_to_receive--
+        i++;
         memset(&buffer, 0, sizeof(Packet));
-            recievedBytes = sl_Recv(qsocket_handle, (void *) &buffer, sizeof(Packet), 0);
+        recievedBytes = sl_Recv(qsocket_handle, (void *) &buffer, sizeof(Packet), 0);
         frameRadioHeader = (TransceiverRxOverHead_t *) (void *) &buffer;
-        int j=0;
-        for(j=0; j< sizeof(Packet); j++){
-            UART_PRINT(" ===>>> Source MAC Address: %02x:%02x:%02x:%02x:%02x:%02x\n\r", buffer.mac_src[0], buffer.mac_src[1], buffer.mac_src[2], buffer.mac_src[3], buffer.mac_src[4], buffer.mac_src[5]);
+        if (buffer.mac_dest[0] == macAddressVal[0]
+                && buffer.mac_dest[1] == macAddressVal[1]
+                && buffer.mac_dest[2] == macAddressVal[2]
+                && buffer.mac_dest[3] == macAddressVal[3]
+                && buffer.mac_dest[4] == macAddressVal[4]
+                && buffer.mac_dest[5] == macAddressVal[5]
+                && buffer.mac_ack == 1)
+        {
+            source_mac = buffer.mac_src;
+            UART_PRINT("ACK Recieved");
+            flag_ACK = 1;
+            break;
         }
     }
-//    while (i < (4000000 * RxTime))
-//    {    //ppkts_to_receive--
-//        i++;
-//        memset(&buffer[0], 0, sizeof(buffer));
-//        recievedBytes = sl_Recv(qsocket_handle, buffer, sizeof(buffer), 0);
-//        frameRadioHeader = (TransceiverRxOverHead_t *) buffer;
-//        if (buffer->mac_dest[0] == macAddressVal[0]
-//                && buffer->mac_dest[1] == macAddressVal[1]
-//                && buffer->mac_dest[2] == macAddressVal[2]
-//                && buffer->mac_dest[3] == macAddressVal[3]
-//                && buffer->mac_dest[4] == macAddressVal[4]
-//                && buffer->mac_dest[5] == macAddressVal[5]
-//                && buffer->mac_ack == 1)
-//        {
-//            source_mac = buffer->mac_src;
-//            UART_PRINT("ACK Recieved");
-//            flag_ACK = 1;
-//            break;
+    while (inf)    //ppkts_to_receive--
+    {
+        memset(&buffer, 0, sizeof(Packet));
+        recievedBytes = sl_Recv(qsocket_handle, (void *) &buffer, sizeof(Packet), 0);
+        frameRadioHeader = (TransceiverRxOverHead_t *) (void *) &buffer;
+        if ((buffer.mac_dest[0] == 0xFF && buffer.mac_dest[1] == 0xFF
+                && buffer.mac_dest[2] == 0xFF && buffer.mac_dest[3] == 0xFF
+                && buffer.mac_dest[4] == 0xFF && buffer.mac_dest[5] == 0xFF
+                && buffer.ip_hello == 1)
+                || (buffer.mac_dest[0] == macAddressVal[0]
+                        && buffer.mac_dest[1] == macAddressVal[1]
+                        && buffer.mac_dest[2] == macAddressVal[2]
+                        && buffer.mac_dest[3] == macAddressVal[3]
+                        && buffer.mac_dest[4] == macAddressVal[4]
+                        && buffer.mac_dest[5] == macAddressVal[5]
+                        && buffer.mac_ack == 1))
+        {
+            source_mac = buffer.mac_src;
+            break;
+        }
+//        if(buffer[12]==0xd4 || buffer[12]==0xf4 || (buffer[12]==0xff && buffer[62]==0xcc)){
+//            UART_PRINT(" ===>>> Timestamp: %iuS, Signal Strength: %idB\n\r", frameRadioHeader->timestamp, frameRadioHeader->rssi);
+//            UART_PRINT(" ===>>> Destination MAC Address: %02x:%02x:%02x:%02x:%02x:%02x\n\r", buffer[12], buffer[13], buffer[14], buffer[15], buffer[16], buffer[17]);
+//            UART_PRINT(" ===>>> Bssid: %02x:%02x:%02x:%02x:%02x:%02x\n\r", buffer[18], buffer[19], buffer[20], buffer[21], buffer[22], buffer[23]);
+//            UART_PRINT(" ===>>> Source MAC Address: %02x:%02x:%02x:%02x:%02x:%02x\n\r", buffer[24], buffer[25], buffer[26], buffer[27], buffer[28], buffer[29]);
+//            UART_PRINT(" ===>>> Source IP Address: %d.%d.%d.%d\n\r", buffer[54],  buffer[55], buffer[56],  buffer[57]);
+//            UART_PRINT(" ===>>> Destination IP Address: %d.%d.%d.%d\n\r", buffer[58],  buffer[59], buffer[60],  buffer[61]);
+//            UART_PRINT(" ===>>> Message: %02x.%02x.%02x.%02x\n\r\n", buffer[62],  buffer[63], buffer[64],  buffer[65]);
 //        }
-//    }
-//    while (inf)    //ppkts_to_receive--
-//    {
-//        memset(&buffer[0], 0, sizeof(buffer));
-//        recievedBytes = sl_Recv(qsocket_handle, buffer, sizeof(buffer), 0);
-//        frameRadioHeader = (TransceiverRxOverHead_t *) buffer;
-//        if ((buffer->mac_dest[0] == 0xFF && buffer->mac_dest[1] == 0xFF
-//                && buffer->mac_dest[2] == 0xFF && buffer->mac_dest[3] == 0xFF
-//                && buffer->mac_dest[4] == 0xFF && buffer->mac_dest[5] == 0xFF
-//                && buffer->ip_hello == 1)
-//                || (buffer->mac_dest[0] == macAddressVal[0]
-//                        && buffer->mac_dest[1] == macAddressVal[1]
-//                        && buffer->mac_dest[2] == macAddressVal[2]
-//                        && buffer->mac_dest[3] == macAddressVal[3]
-//                        && buffer->mac_dest[4] == macAddressVal[4]
-//                        && buffer->mac_dest[5] == macAddressVal[5]
-//                        && buffer->mac_ack == 1))
-//        {
-//            source_mac = buffer->mac_src;
-//            break;
-//        }
-////        if(buffer[12]==0xd4 || buffer[12]==0xf4 || (buffer[12]==0xff && buffer[62]==0xcc)){
-////            UART_PRINT(" ===>>> Timestamp: %iuS, Signal Strength: %idB\n\r", frameRadioHeader->timestamp, frameRadioHeader->rssi);
-////            UART_PRINT(" ===>>> Destination MAC Address: %02x:%02x:%02x:%02x:%02x:%02x\n\r", buffer[12], buffer[13], buffer[14], buffer[15], buffer[16], buffer[17]);
-////            UART_PRINT(" ===>>> Bssid: %02x:%02x:%02x:%02x:%02x:%02x\n\r", buffer[18], buffer[19], buffer[20], buffer[21], buffer[22], buffer[23]);
-////            UART_PRINT(" ===>>> Source MAC Address: %02x:%02x:%02x:%02x:%02x:%02x\n\r", buffer[24], buffer[25], buffer[26], buffer[27], buffer[28], buffer[29]);
-////            UART_PRINT(" ===>>> Source IP Address: %d.%d.%d.%d\n\r", buffer[54],  buffer[55], buffer[56],  buffer[57]);
-////            UART_PRINT(" ===>>> Destination IP Address: %d.%d.%d.%d\n\r", buffer[58],  buffer[59], buffer[60],  buffer[61]);
-////            UART_PRINT(" ===>>> Message: %02x.%02x.%02x.%02x\n\r\n", buffer[62],  buffer[63], buffer[64],  buffer[65]);
-////        }
-//    }
+    }
     sl_Close(qsocket_handle);
 }
 //*****************************************************************************
