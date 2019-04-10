@@ -912,8 +912,7 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
             return 1;
         }
     }
-    while (inf)    //ppkts_to_receive--
-    {
+    while (inf){    //ppkts_to_receive--
         memset(&buffer[0], 0, sizeof(buffer));
         recievedBytes = sl_Recv(qsocket_handle, buffer, BUFFER_SIZE, 0);
         frameRadioHeader = (TransceiverRxOverHead_t *) buffer;
@@ -1155,6 +1154,14 @@ int main()
                     source_mac[3] = Mac_array[i][3];
                     source_mac[4] = Mac_array[i][4];
                     source_mac[5] = Mac_array[i][5];
+                    int kk;
+                    for (kk=0; kk<6; kk++)
+                    {
+                        UART_PRINT("%x",source_mac[kk]);
+                        if(kk<6)
+                            UART_PRINT(".");
+                    }
+                    UART_PRINT("\n\r");
                     lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, 0, 0, source_mac);
                     packtets_received_counter += TransceiverModeRx(flag_channel, source_mac, 1);
                     UART_PRINT("entered loop %d\n\r");
