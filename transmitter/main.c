@@ -848,9 +848,8 @@ void interpackettiming(int NumberOfSeconds)
         {
         }
         UART_PRINT("%d ", j + 1);
-        UART_PRINT("Seconds elapsed \n");
+        UART_PRINT("Seconds elapsed \n\r");
     }
-    UART_PRINT("\r");
 }
 //*****************************************************************************
 int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector){   //  remove the extra condition in the if below ( MAC )
@@ -901,10 +900,10 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
             source_mac[4] = buffer[28];
             source_mac[5] = buffer[29];
             if (buffer[62] == 0xaa){//recevied ack
-                UART_PRINT("ACK Recieved");
+                UART_PRINT("ACK Recieved\n\r");
             }
             if (buffer[62] == 0xbb && buffer[63] == 0xbb){//recevied data
-                UART_PRINT("DATA Recieved");
+                UART_PRINT("DATA Recieved\n\r");
             }
             flag_ACK = 1;
             sl_Close(qsocket_handle);
@@ -1147,6 +1146,7 @@ int main()
             }
             int j;
             for(j=0; j<10; j++){
+                UART_PRINT("Loop #%d\n\r", j);
                 for(i=0;i<1;i++){
                     source_mac[0] = Mac_array[0][i];
                     source_mac[1] = Mac_array[1][i];
@@ -1155,8 +1155,8 @@ int main()
                     source_mac[4] = Mac_array[4][i];
                     source_mac[5] = Mac_array[5][i];
                     int kk;
-                    for (kk=0; kk<6; kk++)
-                    {
+                    UART_PRINT("Sending to : ");
+                    for (kk=0; kk<6; kk++){
                         UART_PRINT("%x",source_mac[kk]);
                         if(kk<6)
                             UART_PRINT(".");
@@ -1164,12 +1164,12 @@ int main()
                     UART_PRINT("\n\r");
                     lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, 0, 0, source_mac);
                     packtets_received_counter += TransceiverModeRx(flag_channel, source_mac, 1);
-                    UART_PRINT("entered loop %d\n\r");
-
+                    UART_PRINT("Number of packets received :  %d\n\r", packtets_received_counter);
                 }
                 //interpacket timing = 2, 4, 8
                 interpackettiming(2);
             }
+            UART_PRINT("///////////////////////////  Done Transmission \n\r\n\r\n\r");
 
             break;
         case (2):    //SOURCE node
