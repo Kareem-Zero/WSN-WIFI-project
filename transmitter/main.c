@@ -680,7 +680,7 @@ static int Tx_continuous(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
     lRetVal = sl_Recv(iSoc, buffer, 1470, 0);
     UART_PRINT("lRetVal 1 is    ");
     UART_PRINT("%d \n\r", lRetVal);
-    while (lRetVal == 0 || lRetVal == SL_EAGAIN || lRetVal == 125|| lRetVal == 78|| lRetVal == 86|| lRetVal == 294 || lRetVal == 117 || lRetVal == 138 || lRetVal == 133)
+    while (lRetVal == 0 || lRetVal == SL_EAGAIN || lRetVal == 125|| lRetVal == 78|| lRetVal == 86|| lRetVal == 294 || lRetVal == 117 || lRetVal == 138 || lRetVal == 133|| lRetVal == 99)
     {
         memset(&buffer[0], 0, sizeof(buffer));
         lRetVal = sl_Recv(iSoc, buffer, 1470, 0);
@@ -935,9 +935,9 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
             source_mac[5] = buffer[29];
             break;
         }
-        if (buffer[12] == 0xd4 || buffer[12] == 0xf4
-                || (buffer[12] == 0xff && buffer[62] == 0xcc))
-        {
+//        if (buffer[12] == 0xd4 || buffer[12] == 0xf4
+//                || (buffer[12] == 0xff && buffer[62] == 0xcc))
+//        {
             UART_PRINT(" ===>>> Timestamp: %iuS, Signal Strength: %idB\n\r",
                        frameRadioHeader->timestamp, frameRadioHeader->rssi);
             UART_PRINT(
@@ -957,7 +957,7 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
                        buffer[58], buffer[59], buffer[60], buffer[61]);
             UART_PRINT(" ===>>> Message: %02x.%02x.%02x.%02x\n\r\n", buffer[62],
                        buffer[63], buffer[64], buffer[65]);
-        }
+//        }
     }
     sl_Close(qsocket_handle);
     return 0;
