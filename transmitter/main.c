@@ -45,7 +45,7 @@ unsigned char g_ucConnectionSSID[SSID_LEN_MAX + 1]; //Connection SSID
 unsigned char g_ucConnectionBSSID[BSSID_LEN_MAX]; //Connection BSSID
 _u8 macAddressVal[SL_MAC_ADDR_LEN];
 int flag_ACK = 0;
-#define Seconds_10 10
+#define Seconds_60 60
 #define Minutes_10 600
 char RawData_Ping[] = {
 /*---- wlan header start -----*/
@@ -867,11 +867,15 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
         RxTime = 0;
         break;
     case 1:
-        RxTime = Seconds_10;
+        RxTime = Seconds_60;
         inf = 0;
         break;
     case 2:
         RxTime = Minutes_10;
+        inf = 0;
+
+    case 3:
+        RxTime = 10;
         inf = 0;
     };
     int i = 0;
@@ -1056,7 +1060,7 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
 //    sl_Close(qsocket_handle);
 //}
 //*****************************************************************************
-#define flag_function 2//1: SINK, 2: SOURCE
+#define flag_function 1//1: SINK, 2: SOURCE
 #define flag_channel 2
 #define flag_rate 5
 #define flag_packets 10
@@ -1147,8 +1151,7 @@ int main()
                     source_mac[3] = Mac_array[i][3];
                     source_mac[4] = Mac_array[i][4];
                     source_mac[5] = Mac_array[i][5];
-                    lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0,
-                                            0, 1, source_mac);
+                    lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, 0, 1, source_mac);
                     packtets_received_counter += TransceiverModeRx(flag_channel, source_mac, 1);
 
                 }
@@ -1172,8 +1175,8 @@ int main()
 
             while(1){
                 TransceiverModeRx(flag_channel, source_mac, 0);
-                interpackettiming((flag_interpackettime + 1));
-                lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, flag_interpackettime, 3, source_mac);
+//                interpackettiming((flag_interpackettime + 1));
+                lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, 0, 3, source_mac);
             }
 
 //            UART_PRINT("Recieved Request\n\r");
