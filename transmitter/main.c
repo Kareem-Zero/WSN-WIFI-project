@@ -560,7 +560,7 @@ typedef struct
 //*****************************************************************************
 void random_backoff_delay(void)
 {
-    srand((macAddressVal[0] * macAddressVal[1]) % RAND_MAX);
+    srand((macAddressVal[0] * macAddressVal[1] * macAddressVal[2] * macAddressVal[3] * macAddressVal[4] * macAddressVal[5]) % RAND_MAX);
     long long i;
     int j;
     long long k = rand() % 500000;
@@ -680,9 +680,9 @@ static int Tx_continuous(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
     lRetVal = sl_Recv(iSoc, buffer, 1470, 0);
     UART_PRINT("lRetVal 1 is    ");
     UART_PRINT("%d \n\r", lRetVal);
-//    while (lRetVal == 0 || lRetVal == SL_EAGAIN || lRetVal == 125|| lRetVal == 78|| lRetVal == 86|| lRetVal == 294 || lRetVal == 117 || lRetVal == 138 || lRetVal == 133|| lRetVal == 99|| lRetVal == 124){
+    while (lRetVal == 0 || lRetVal == SL_EAGAIN || lRetVal == 125|| lRetVal == 78|| lRetVal == 86|| lRetVal == 294 || lRetVal == 117 || lRetVal == 138 || lRetVal == 133|| lRetVal == 99|| lRetVal == 124){
 
-    while (lRetVal >=0){
+//    while (lRetVal >=0){
         memset(&buffer[0], 0, sizeof(buffer));
         lRetVal = sl_Recv(iSoc, buffer, 1470, 0);
         UART_PRINT("lRetVal loop is    ");
