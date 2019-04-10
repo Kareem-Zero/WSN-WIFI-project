@@ -563,14 +563,12 @@ void random_backoff_delay(void)
 
     long long i;
     int j;
-    long long k = rand() % 500000;
+    int k = rand() % 500000;//random
+//    long long k = random() % 500000;//random
     UART_PRINT("This is the rand backoff \n\r");
     UART_PRINT("%d \n\r", k);
-    for (i = 0; i < k; i++)
-    { // rand number mod 2 micro seconds
-        for (j = 0; j < 8; j++) // 2 microsecond delay
-        {
-
+    for (i = 0; i < k; i++){ // rand number mod 2 micro seconds
+        for (j = 0; j < 8; j++){ // 2 microsecond delay
         }
     }
 }
@@ -1142,14 +1140,14 @@ int main()
                 LOOP_FOREVER();
             }
             UART_PRINT("Waiting for ACKs\n\r");
-            for(i=0; i<3; i++){
+            for(i=0; i<1; i++){
                 TransceiverModeRx(flag_channel, source_mac, 1);
                 UART_PRINT("Recieved Ack No: %d\n\r",i);
                 tabulate(source_mac);
             }
             int j;
             for(j=0; j<10; j++){
-                for(i=0;i<3;i++){
+                for(i=0;i<1;i++){
                     source_mac[0] = Mac_array[0][i];
                     source_mac[1] = Mac_array[1][i];
                     source_mac[2] = Mac_array[2][i];
