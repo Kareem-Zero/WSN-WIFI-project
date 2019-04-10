@@ -680,7 +680,7 @@ static int Tx_continuous(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
     lRetVal = sl_Recv(iSoc, buffer, 1470, 0);
     UART_PRINT("lRetVal 1 is    ");
     UART_PRINT("%d \n\r", lRetVal);
-    while (lRetVal == 0 || lRetVal == SL_EAGAIN || lRetVal == 125|| lRetVal == 78|| lRetVal == 86|| lRetVal == 294)
+    while (lRetVal == 0 || lRetVal == SL_EAGAIN || lRetVal == 125|| lRetVal == 78|| lRetVal == 86|| lRetVal == 294 || lRetVal == 117 || lRetVal == 138)
     {
         memset(&buffer[0], 0, sizeof(buffer));
         lRetVal = sl_Recv(iSoc, buffer, 1470, 0);
@@ -1156,6 +1156,7 @@ int main()
                     source_mac[5] = Mac_array[i][5];
                     lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, 0, 1, source_mac);
                     packtets_received_counter += TransceiverModeRx(flag_channel, source_mac, 1);
+                    UART_PRINT("entered loop %d\n\r");
 
                 }
                 //interpacket timing = 2, 4, 8
