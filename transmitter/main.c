@@ -654,14 +654,17 @@ static int Tx_continuous(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
     for (index = 4; index < 10; index++){
         message[index] = source_mac[index - 4];
     }
-    UART_PRINT("Message Source MAC is : ");
-    for (index = 0; index < 6; index++){
-        message[index + 16] = macAddressVal[index];
-        UART_PRINT("%X", message[index + 16]);
-        if (index + 16 < 21)
-            UART_PRINT(".");
-    }
-    UART_PRINT("\r\n");
+
+    interpackettiming(100);
+//    UART_PRINT("Message Source MAC is : ");
+//    for (index = 0; index < 6; index++){
+//        message[index + 16] = macAddressVal[index];
+//        UART_PRINT("%X", message[index + 16]);
+//        if (index + 16 < 21)
+//            UART_PRINT(".");
+//    }
+//    UART_PRINT("\r\n");
+
     iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, iChannel);
     ASSERT_ON_ERROR(iSoc);
 
@@ -686,7 +689,7 @@ static int Tx_continuous(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
         lRetVal = sl_Send(
                 iSoc, message, sizeof(message),
                 SL_RAW_RF_TX_PARAMS(iChannel, rate, iTxPowerLevel, PREAMBLE));
-        interpackettiming(1000);
+        interpackettiming(100);
         if (lRetVal < 0){
             sl_Close(iSoc);
             ASSERT_ON_ERROR(lRetVal);
