@@ -1100,8 +1100,7 @@ int main()
     if (lRetVal < 0 || ROLE_STA != lRetVal)
     {
         UART_PRINT("Failed to start the device \n\r");
-        LOOP_FOREVER()
-        ;
+        LOOP_FOREVER();
     }
     UART_PRINT("Device started as STATION \n\r");
     // reset all network policies
@@ -1150,7 +1149,7 @@ int main()
 
                 seconds=difftime(time(NULL),started);
 
-                UART_PRINT("\n\rLoop #%d @%d\n\r", j, seconds)
+                UART_PRINT("\n\rLoop #%d @%d\n\r", j, seconds);
                 for(i=0;i<available_sources;i++){
                     source_mac[0] = Mac_array[0][i];
                     source_mac[1] = Mac_array[1][i];
