@@ -686,7 +686,7 @@ static int Tx_continuous(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
         lRetVal = sl_Send(
                 iSoc, message, sizeof(message),
                 SL_RAW_RF_TX_PARAMS(iChannel, rate, iTxPowerLevel, PREAMBLE));
-//        interpackettiming(1);
+        interpackettiming(1000);
         if (lRetVal < 0){
             sl_Close(iSoc);
             ASSERT_ON_ERROR(lRetVal);
@@ -1140,7 +1140,6 @@ int main()
             packtets_sent_counter = 0;
             packtets_received_counter = 0;
             for(j=0; j < 1000; j++){
-                UART_PRINT("\n\rLoop #%d\n\r", j);
                 for(i=0;i<available_sources;i++){
                     source_mac[0] = Mac_array[0][i];
                     source_mac[1] = Mac_array[1][i];
@@ -1162,8 +1161,7 @@ int main()
                     packtets_received_counter += TransceiverModeRx(flag_channel, source_mac, 3);
                 }
                 //interpacket timing = 2, 4, 8
-                UART_PRINT("Number of packets sent :  %d\n\r", packtets_sent_counter);
-                UART_PRINT("Number of packets received :  %d\n\r", packtets_received_counter);
+                UART_PRINT("Loop #%d out: %d in: %d\n\r\n\r", j, packtets_sent_counter, packtets_received_counter);
                 interpackettiming(2);
             }
             UART_PRINT("///////////////////////////  Done Transmission \n\r\n\r\n\r");
