@@ -1067,7 +1067,7 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
 #define flag_function 1//1: SINK, 2: SOURCE
 #define flag_channel 2
 #define flag_rate 5
-#define flag_packets 10
+#define flag_packets 1
 #define flag_power 15
 #define flag_interpackettime 2
 
