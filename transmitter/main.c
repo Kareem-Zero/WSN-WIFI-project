@@ -45,7 +45,7 @@ unsigned char g_ucConnectionSSID[SSID_LEN_MAX + 1]; //Connection SSID
 unsigned char g_ucConnectionBSSID[BSSID_LEN_MAX]; //Connection BSSID
 _u8 macAddressVal[SL_MAC_ADDR_LEN];
 int flag_ACK = 0;
-#define Seconds_60 60
+#define Seconds_60 5
 #define Minutes_10 600
 char RawData_Ping[] = {
 /*---- wlan header start -----*/
