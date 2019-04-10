@@ -813,7 +813,7 @@ void tabulate(_u8 mac_add[6])
         UART_PRINT("MAC Address %X : ", j);
         for (i = 0; i < 6; i++)
         {
-            UART_PRINT("%X", (unsigned char) Mac_array[i][j]);
+            UART_PRINT("%02x", (unsigned char) Mac_array[i][j]);
             if (i < 5)
             {
                 UART_PRINT(".");
@@ -1047,7 +1047,7 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
 #define flag_function 1//1: SINK, 2: SOURCE
 #define flag_channel 2
 #define flag_rate 5
-#define flag_packets 10
+#define flag_packets 1
 #define flag_power 15
 #define flag_interpackettime 2
 
