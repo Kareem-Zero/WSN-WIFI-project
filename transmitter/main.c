@@ -670,8 +670,9 @@ static int Tx_continuous(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
     lRetVal = sl_Recv(iSoc, buffer, 1470, 0);
     UART_PRINT("lRetVal 1 is    ");
     UART_PRINT("%d \n\r", lRetVal);
-    while (lRetVal == 0 || lRetVal == SL_EAGAIN || lRetVal == 125|| lRetVal == 78|| lRetVal == 86|| lRetVal == 294 || lRetVal == 117 || lRetVal == 138 || lRetVal == 133|| lRetVal == 99|| lRetVal == 124|| lRetVal == 61|| lRetVal == 132){
-
+    int number_of_backoffs = 3;
+    while (number_of_backoffs>=0 &&(lRetVal == 0 || lRetVal == SL_EAGAIN || lRetVal == 125|| lRetVal == 78|| lRetVal == 86|| lRetVal == 294 || lRetVal == 117 || lRetVal == 138 || lRetVal == 133|| lRetVal == 99|| lRetVal == 124|| lRetVal == 61|| lRetVal == 132)){
+        number_of_backoffs--;
 //    while (lRetVal >=0){
         memset(&buffer[0], 0, sizeof(buffer));
         lRetVal = sl_Recv(iSoc, buffer, 1470, 0);
@@ -685,7 +686,7 @@ static int Tx_continuous(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
         lRetVal = sl_Send(
                 iSoc, message, sizeof(message),
                 SL_RAW_RF_TX_PARAMS(iChannel, rate, iTxPowerLevel, PREAMBLE));
-        interpackettiming(1);
+//        interpackettiming(1);
         if (lRetVal < 0){
             sl_Close(iSoc);
             ASSERT_ON_ERROR(lRetVal);
@@ -827,14 +828,14 @@ void tabulate(_u8 mac_add[6])
 
 }
 //*****************************************************************************
-void interpackettiming(int NumberOfSeconds)
+void interpackettiming(int NumberOfMilliSeconds)
 {
     int j = 0;
     int k = 0;
 //    UART_PRINT("Interpacket time gap . . .");
-    for (j = 0; j < NumberOfSeconds; j++)
+    for (j = 0; j < NumberOfMilliSeconds; j++)
     {
-        for (k = 0; k < 4000000; k++)
+        for (k = 0; k < 4000; k++)
         {
         }
 //        UART_PRINT("%d ", j + 1);
@@ -1051,7 +1052,7 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
 #define flag_rate 5
 #define flag_packets 1
 #define flag_power 15
-#define flag_interpackettime 2
+#define flag_interpackettime 2000
 
 int packtets_received_counter = 0;
 int packtets_sent_counter = 0;
@@ -1157,7 +1158,7 @@ int main()
 //                    UART_PRINT("\n\r");
                     lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, 0, 0, source_mac);
                     packtets_sent_counter++;
-                    interpackettiming(1);
+                    interpackettiming(100);
                     packtets_received_counter += TransceiverModeRx(flag_channel, source_mac, 3);
                 }
                 //interpacket timing = 2, 4, 8
