@@ -631,7 +631,7 @@ static int Tx_continuous(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
     int index;
     switch (message_type)
     {
-    case 0: //ping
+    case 0: //Request
         for (index = 0; index < sizeof(message); index++)
         {
             message[index] = RawData_Ping[index];
@@ -1154,7 +1154,7 @@ int main()
                     source_mac[3] = Mac_array[i][3];
                     source_mac[4] = Mac_array[i][4];
                     source_mac[5] = Mac_array[i][5];
-                    lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, 0, 1, source_mac);
+                    lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, 0, 0, source_mac);
                     packtets_received_counter += TransceiverModeRx(flag_channel, source_mac, 1);
                     UART_PRINT("entered loop %d\n\r");
 
