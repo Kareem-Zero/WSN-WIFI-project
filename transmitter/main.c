@@ -674,18 +674,21 @@ static int Tx_continuous(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
     UART_PRINT("\r\n");
     iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, iChannel);
     ASSERT_ON_ERROR(iSoc);
+
 //  while loop for recv and backoff
     memset(&buffer[0], 0, sizeof(buffer));
     lRetVal = sl_Recv(iSoc, buffer, 1470, 0);
     UART_PRINT("lRetVal 1 is    ");
     UART_PRINT("%d \n\r", lRetVal);
-    while (lRetVal == 0 || lRetVal == SL_EAGAIN)
+    while (lRetVal == 0 || lRetVal == SL_EAGAIN || lRetVal == 125|| lRetVal == 78)
     {
+        memset(&buffer[0], 0, sizeof(buffer));
         lRetVal = sl_Recv(iSoc, buffer, 1470, 0);
         UART_PRINT("lRetVal loop is    ");
         UART_PRINT("%d", lRetVal);
         random_backoff_delay();
     }
+
     UART_PRINT("Transmitting data...\r\n");
     for (ulIndex = 0; ulIndex < iNumberOfPackets; ulIndex++)
     {
@@ -1129,14 +1132,14 @@ int main()
         case (1):    //SINK node;
             UART_PRINT(
                     "\n\r//////////////////////   SINK MODE \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \n\r\n\r");
+            UART_PRINT("Sending Hello\n\r");
             lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0,
                                     flag_interpackettime, 1, source_mac);
-            if (lRetVal < 0)
-            {
+            if (lRetVal < 0){
                 UART_PRINT("Error during transmission of raw data\n\r");
-                LOOP_FOREVER()
-                ;
+                LOOP_FOREVER();
             }
+            UART_PRINT("Waiting for ACKs\n\r");
             for(i=0; i<3; i++){
                 TransceiverModeRx(flag_channel, source_mac, 1);
                 UART_PRINT("Recieved Ack No: %d\n\r",i);
