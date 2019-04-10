@@ -560,7 +560,7 @@ typedef struct
 //*****************************************************************************
 void random_backoff_delay(void)
 {
-    srand((macAddressVal[0] * macAddressVal[1] * macAddressVal[2] * macAddressVal[3] * macAddressVal[4] * macAddressVal[5]) % RAND_MAX);
+
     long long i;
     int j;
     long long k = rand() % 500000;
@@ -1125,6 +1125,7 @@ int main()
     lRetVal = sl_WlanPolicySet( SL_POLICY_CONNECTION,
                                SL_CONNECTION_POLICY(0, 0, 0, 0, 0), &policyVal,
                                1 /*PolicyValLen*/);
+    srand((macAddressVal[0] * macAddressVal[1] * macAddressVal[2] * macAddressVal[3] * macAddressVal[4] * macAddressVal[5]) % RAND_MAX);
     _u8 source_mac[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
     while (iFlag)
     {
