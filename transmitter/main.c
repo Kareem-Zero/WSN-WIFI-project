@@ -1148,12 +1148,12 @@ int main()
             int j;
             for(j=0; j<10; j++){
                 for(i=0;i<3;i++){
-                    source_mac[0] = Mac_array[i][0];
-                    source_mac[1] = Mac_array[i][1];
-                    source_mac[2] = Mac_array[i][2];
-                    source_mac[3] = Mac_array[i][3];
-                    source_mac[4] = Mac_array[i][4];
-                    source_mac[5] = Mac_array[i][5];
+                    source_mac[0] = Mac_array[0][i];
+                    source_mac[1] = Mac_array[1][i];
+                    source_mac[2] = Mac_array[2][i];
+                    source_mac[3] = Mac_array[3][i];
+                    source_mac[4] = Mac_array[4][i];
+                    source_mac[5] = Mac_array[5][i];
                     int kk;
                     for (kk=0; kk<6; kk++)
                     {
