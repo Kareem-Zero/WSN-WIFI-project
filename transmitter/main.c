@@ -1178,6 +1178,7 @@ int main()
 
             while(1){
                 TransceiverModeRx(flag_channel, source_mac, 0);
+                UART_PRINT("recieved request, preparing data for transmission ");
 //                interpackettiming((flag_interpackettime + 1));
                 lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, 0, 3, source_mac);
             }
