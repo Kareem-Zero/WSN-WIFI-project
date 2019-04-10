@@ -654,14 +654,14 @@ static int Tx_continuous(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
     for (index = 4; index < 10; index++){
         message[index] = source_mac[index - 4];
     }
-//    UART_PRINT("Message Source MAC is : ");
-//    for (index = 0; index < 6; index++){
-//        message[index + 16] = macAddressVal[index];
-//        UART_PRINT("%X", message[index + 16]);
-//        if (index + 16 < 21)
-//            UART_PRINT(".");
-//    }
-//    UART_PRINT("\r\n");
+    UART_PRINT("Message Source MAC is : ");
+    for (index = 0; index < 6; index++){
+        message[index + 16] = macAddressVal[index];
+        UART_PRINT("%X", message[index + 16]);
+        if (index + 16 < 21)
+            UART_PRINT(".");
+    }
+    UART_PRINT("\r\n");
     iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, iChannel);
     ASSERT_ON_ERROR(iSoc);
 
