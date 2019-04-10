@@ -553,7 +553,7 @@ static void BoardInit(void)
     PRCMCC3200MCUInit();
 }
 //*****************************************************************************
-#define BUFFER_SIZE 1472
+#define BUFFER_SIZE 300
 typedef struct
 {
     _u8 rate;_u8 channel;_i8 rssi;_u8 padding;_u32 timestamp;
@@ -582,7 +582,7 @@ static int Tx_continuous(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
     int iSoc;
     long lRetVal = -1;
     long ulIndex;
-    _u8 buffer[1470] = { '\0' };
+    _u8 buffer[300] = { '\0' };
     char message[] = {
     /*---- wlan header start -----*/
     0x00, /* version , type sub type */
@@ -656,10 +656,10 @@ static int Tx_continuous(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
     }
 
 //    interpackettiming(1000);
-    UART_PRINT("Message Source MAC is : ");
+    UART_PRINT("Sending to : ");
     for (index = 0; index < 6; index++){
         message[index + 16] = macAddressVal[index];
-        UART_PRINT("%X", message[index + 16]);
+        UART_PRINT("%X", source_mac[index]);
         if (index + 16 < 21)
             UART_PRINT(".");
     }
@@ -670,7 +670,7 @@ static int Tx_continuous(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
 
 //  while loop for recv and backoff
     memset(&buffer[0], 0, sizeof(buffer));
-    lRetVal = sl_Recv(iSoc, buffer, 1470, 0);
+    lRetVal = sl_Recv(iSoc, buffer, sizeof(buffer), 0);
 //    UART_PRINT("lRetVal 1 is    ");
 //    UART_PRINT("%d \n\r", lRetVal);
     int number_of_backoffs = 3;
@@ -678,7 +678,7 @@ static int Tx_continuous(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
         number_of_backoffs--;
 //    while (lRetVal >=0){
         memset(&buffer[0], 0, sizeof(buffer));
-        lRetVal = sl_Recv(iSoc, buffer, 1470, 0);
+        lRetVal = sl_Recv(iSoc, buffer, sizeof(buffer), 0);
 //        UART_PRINT("lRetVal loop is    ");
 //        UART_PRINT("%d", lRetVal);
 //        random_backoff_delay();
@@ -869,14 +869,14 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
             inf = 1;
             break;
         case 3://data
-            RxTime = 3;
+            RxTime = 1;
             inf = 0;
             break;
     }
     int j = 0;
     int k = 0;
     for (j = 0; j < RxTime; j++){
-        for (k = 0; k < 5; k++){
+        for (k = 0; k < 1; k++){
             memset(&buffer[0], 0, sizeof(buffer));
             recievedBytes = sl_Recv(qsocket_handle, buffer, BUFFER_SIZE, 0);
             frameRadioHeader = (TransceiverRxOverHead_t *) buffer;
@@ -1052,7 +1052,7 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
 //*****************************************************************************
 #define flag_function 1//1: SINK, 2: SOURCE
 #define flag_channel 5
-#define flag_rate 5
+#define flag_rate 12
 #define flag_packets 1
 #define flag_power 15
 #define flag_interpackettime 2000
@@ -1172,7 +1172,7 @@ int main()
 //                    UART_PRINT("\n\r");
                     lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, 0, 0, source_mac);
                     packtets_sent_counter++;
-                    interpackettiming(100);
+                    interpackettiming(10);
                     packtets_received_counter += TransceiverModeRx(flag_channel, source_mac, 3);
                 }
                 //interpacket timing = 2, 4, 8
