@@ -1139,7 +1139,7 @@ int main()
                 LOOP_FOREVER();
             }
             UART_PRINT("Waiting for ACKs\n\r");
-            for(i=0; i<1; i++){
+            for(i=0; i<2; i++){
                 TransceiverModeRx(flag_channel, source_mac, 1);
                 UART_PRINT("Recieved Ack No: %d\n\r",i);
                 tabulate(source_mac);
