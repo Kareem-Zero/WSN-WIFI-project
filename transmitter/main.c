@@ -870,7 +870,7 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
     int j = 0;
     int k = 0;
     for (j = 0; j < RxTime; j++){
-        for (k = 0; k < 3; k++){
+        for (k = 0; k < 20; k++){
             memset(&buffer[0], 0, sizeof(buffer));
             recievedBytes = sl_Recv(qsocket_handle, buffer, BUFFER_SIZE, 0);
             frameRadioHeader = (TransceiverRxOverHead_t *) buffer;
