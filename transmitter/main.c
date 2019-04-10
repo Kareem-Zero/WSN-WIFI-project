@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 #include "simplelink.h"
 #include "hw_types.h"
 #include "hw_ints.h"
@@ -1114,6 +1115,13 @@ int main()
                                1 /*PolicyValLen*/);
     srand((macAddressVal[0] * macAddressVal[1] * macAddressVal[2] * macAddressVal[3] * macAddressVal[4] * macAddressVal[5]) % RAND_MAX);
     _u8 source_mac[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+    clock_t begin = clock();
+
+    double seconds;
+    time_t started=time(NULL);
+    /* here, do your time-consuming job */
+
+
     while (iFlag)
     {
         switch (flag_function)
@@ -1140,7 +1148,13 @@ int main()
             }
             int j;
             for(j=0; j<10; j++){
-                UART_PRINT("\n\rLoop #%d\n\r", j);
+                clock_t end = clock();
+                double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+
+
+                seconds=difftime(time(NULL),started);
+
+                UART_PRINT("\n\rLoop #%d @%d\n\r", j, seconds);
                 for(i=0;i<available_sources;i++){
                     source_mac[0] = Mac_array[0][i];
                     source_mac[1] = Mac_array[1][i];
