@@ -654,13 +654,13 @@ static int Tx_continuous(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
     for (index = 4; index < 10; index++){
         message[index] = source_mac[index - 4];
     }
-//    UART_PRINT("Message Source MAC is : ");
-//    for (index = 0; index < 6; index++){
-//        message[index + 16] = macAddressVal[index];
-//        UART_PRINT("%X", message[index + 16]);
-//        if (index + 16 < 21)
-//            UART_PRINT(".");
-//    }
+    UART_PRINT("Message Source MAC is : ");
+    for (index = 0; index < 6; index++){
+        message[index + 16] = macAddressVal[index];
+        UART_PRINT("%X", message[index + 16]);
+        if (index + 16 < 21)
+            UART_PRINT(".");
+    }
     UART_PRINT("\r\n");
     iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, iChannel);
     ASSERT_ON_ERROR(iSoc);
@@ -668,8 +668,8 @@ static int Tx_continuous(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
 //  while loop for recv and backoff
     memset(&buffer[0], 0, sizeof(buffer));
     lRetVal = sl_Recv(iSoc, buffer, 1470, 0);
-//    UART_PRINT("lRetVal 1 is    ");
-//    UART_PRINT("%d \n\r", lRetVal);
+    UART_PRINT("lRetVal 1 is    ");
+    UART_PRINT("%d \n\r", lRetVal);
     while (lRetVal == 0 || lRetVal == SL_EAGAIN || lRetVal == 125|| lRetVal == 78|| lRetVal == 86|| lRetVal == 294 || lRetVal == 117 || lRetVal == 138 || lRetVal == 133|| lRetVal == 99|| lRetVal == 124|| lRetVal == 61|| lRetVal == 132){
 
 //    while (lRetVal >=0){
@@ -871,7 +871,7 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
     int j = 0;
     int k = 0;
     for (j = 0; j < RxTime; j++){
-        for (k = 0; k < 5; k++){
+        for (k = 0; k < 3; k++){
             memset(&buffer[0], 0, sizeof(buffer));
             recievedBytes = sl_Recv(qsocket_handle, buffer, BUFFER_SIZE, 0);
             frameRadioHeader = (TransceiverRxOverHead_t *) buffer;
@@ -1150,7 +1150,7 @@ int main()
 
                 seconds=difftime(time(NULL),started);
 
-                UART_PRINT("\n\rLoop #%d @%d\n\r", j, seconds);
+                UART_PRINT("\n\rLoop #%d @%d\n\r", j, seconds)
                 for(i=0;i<available_sources;i++){
                     source_mac[0] = Mac_array[0][i];
                     source_mac[1] = Mac_array[1][i];
