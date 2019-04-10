@@ -882,7 +882,7 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
         RxTime = 10;
         inf = 0;
     };
-    int i = 0;
+    long long i = 0;
     while (i < (4000000 * RxTime))    //ppkts_to_receive--
     {
         i++;
@@ -1193,7 +1193,7 @@ int main()
                 UART_PRINT("recieved request, preparing data for transmission \n\r");
 //                interpackettiming((flag_interpackettime + 1));
                 lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, 0, 3, source_mac);
-                UART_PRINT("Sent request.\n\r");
+                UART_PRINT("Sent data.\n\r");
             }
 
 //            UART_PRINT("Recieved Request\n\r");
