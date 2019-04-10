@@ -1077,8 +1077,7 @@ int main()
     // Applications may choose to skip this step if the developer is sure that the device is in its default state at start of applicaton
     // Note that all profiles and persistent settings that were done on the device will be lost
     lRetVal = ConfigureSimpleLinkToDefaultState();
-    if (lRetVal < 0)
-    {
+    if (lRetVal < 0){
         if (DEVICE_NOT_IN_STATION_MODE == lRetVal)
             UART_PRINT(
                     "Failed to configure the device in its default state \n\r");
@@ -1119,24 +1118,38 @@ int main()
         case (1):    //SINK node;
             UART_PRINT(
                     "\n\r//////////////////////   SINK MODE \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \n\r\n\r");
-            UART_PRINT("Sending Hello\n\r");
-            lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0,0, 1, source_mac);
-            random_backoff_delay();
-            if (lRetVal < 0){
-                UART_PRINT("Error during transmission of raw data\n\r");
-                LOOP_FOREVER();
-            }
-            UART_PRINT("Waiting for ACKs\n\r");
-            available_sources=0;
-            for(i=0; i<2; i++){
-                source = TransceiverModeRx(flag_channel, source_mac, 1);
-                UART_PRINT("source: %d\n\r", source);
-                if (source==1){
-                    available_sources++;
-                    UART_PRINT("Received Ack No: %d\n\r",i);
-                    tabulate(source_mac);
-                }
-            }
+//            UART_PRINT("Sending Hello\n\r");
+//            lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0,0, 1, source_mac);
+//            random_backoff_delay();
+//            if (lRetVal < 0){
+//                UART_PRINT("Error during transmission of raw data\n\r");
+//                LOOP_FOREVER();
+//            }
+//            UART_PRINT("Waiting for ACKs\n\r");
+//            available_sources=0;
+//            for(i=0; i<2; i++){
+//                source = TransceiverModeRx(flag_channel, source_mac, 1);
+//                UART_PRINT("source: %d\n\r", source);
+//                if (source==1){
+//                    available_sources++;
+//                    UART_PRINT("Received Ack No: %d\n\r",i);
+//                    tabulate(source_mac);
+//                }
+//            }
+        available_sources = 2;
+        Mac_array[0][0] = 0xd4;
+        Mac_array[1][0] = 0x36;
+        Mac_array[2][0] = 0x39;
+        Mac_array[3][0] = 0x55;
+        Mac_array[4][0] = 0xac;
+        Mac_array[5][0] = 0x79;
+
+        Mac_array[0][1] = 0xd4;
+        Mac_array[1][1] = 0x36;
+        Mac_array[2][1] = 0x39;
+        Mac_array[3][1] = 0x55;
+        Mac_array[4][1] = 0xac;
+        Mac_array[5][1] = 0xac;
             if(available_sources == 0)continue;
             int j;
             packtets_sent_counter = 0;
@@ -1174,14 +1187,14 @@ int main()
                     "\n\r//////////////////////   SOURCE MODE \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \n\r\n\r");
 //            UART_PRINT("size of Packet = %d \n\r",sizeof(Packet));
 
-            TransceiverModeRx(flag_channel, source_mac, 0);//waiting for hello
-//            UART_PRINT("Recieved Hello\n\r");
-
-
-            interpackettiming((flag_interpackettime + 1));
-            random_backoff_delay();
-            lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0,0, 2, source_mac);
-            UART_PRINT("Sent Ack\n\r");
+//            TransceiverModeRx(flag_channel, source_mac, 0);//waiting for hello
+////            UART_PRINT("Recieved Hello\n\r");
+//
+//
+//            interpackettiming((flag_interpackettime + 1));
+//            random_backoff_delay();
+//            lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0,0, 2, source_mac);
+//            UART_PRINT("Sent Ack\n\r");
 
             while(1){
                 UART_PRINT("Waiting for request.\n\r");
