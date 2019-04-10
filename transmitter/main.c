@@ -856,7 +856,7 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
             inf = 1;
             RxTime = 0;
             break;
-        case 1://ack
+        case 1://ack and data
             RxTime = Seconds_60;
             inf = 0;
             break;
@@ -872,7 +872,7 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
     int j = 0;
     int k = 0;
     for (j = 0; j < RxTime; j++){
-        for (k = 0; k < 5; k++){
+        for (k = 0; k < 20; k++){
             memset(&buffer[0], 0, sizeof(buffer));
             recievedBytes = sl_Recv(qsocket_handle, buffer, BUFFER_SIZE, 0);
             frameRadioHeader = (TransceiverRxOverHead_t *) buffer;
@@ -1157,7 +1157,7 @@ int main()
                     UART_PRINT("\n\r");
                     lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, 0, 0, source_mac);
                     packtets_sent_counter++;
-                    packtets_received_counter += TransceiverModeRx(flag_channel, source_mac, 3);
+                    packtets_received_counter += TransceiverModeRx(flag_channel, source_mac, 1);
                 }
                 //interpacket timing = 2, 4, 8
                 UART_PRINT("Number of packets sent :  %d\n\r", packtets_sent_counter);
@@ -1185,8 +1185,8 @@ int main()
                 UART_PRINT("Waiting for request.\n\r");
                 TransceiverModeRx(flag_channel, source_mac, 2);
                 UART_PRINT("received request, preparing data for transmission \n\r");
-//                interpackettiming(1);
-//                random_backoff_delay();
+                interpackettiming((flag_interpackettime + 1));
+                random_backoff_delay();
                 lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, 0, 3, source_mac);
                 UART_PRINT("Sent data.\n\r");
             }
