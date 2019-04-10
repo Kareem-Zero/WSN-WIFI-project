@@ -874,40 +874,41 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
     case 2:
         RxTime = Minutes_10;
         inf = 0;
-
+        break;
     case 3:
         RxTime = 10;
         inf = 0;
     };
-    long long i = 0;
-    while (i < (4000000 * RxTime))    //ppkts_to_receive--
-    {
-        i++;
-        memset(&buffer[0], 0, sizeof(buffer));
-        recievedBytes = sl_Recv(qsocket_handle, buffer, BUFFER_SIZE, 0);
-        frameRadioHeader = (TransceiverRxOverHead_t *) buffer;
-        if ((buffer[12] == macAddressVal[0]
-                && buffer[13] == macAddressVal[1]
-                && buffer[14] == macAddressVal[2]
-                && buffer[15] == macAddressVal[3]
-                && buffer[16] == macAddressVal[4]
-                && buffer[17] == macAddressVal[5]) && (buffer[62] == 0xaa || (buffer[62] == 0xbb && buffer[63] == 0xbb)))
-        {
-            source_mac[0] = buffer[24];
-            source_mac[1] = buffer[25];
-            source_mac[2] = buffer[26];
-            source_mac[3] = buffer[27];
-            source_mac[4] = buffer[28];
-            source_mac[5] = buffer[29];
-            if (buffer[62] == 0xaa){//recevied ack
-                UART_PRINT("ACK Recieved\n\r");
+    int j = 0;
+    int k = 0;
+    for (j = 0; j < RxTime; j++){
+        for (k = 0; k < 4000000; k++){
+            memset(&buffer[0], 0, sizeof(buffer));
+            recievedBytes = sl_Recv(qsocket_handle, buffer, BUFFER_SIZE, 0);
+            frameRadioHeader = (TransceiverRxOverHead_t *) buffer;
+            if ((buffer[12] == macAddressVal[0]
+                    && buffer[13] == macAddressVal[1]
+                    && buffer[14] == macAddressVal[2]
+                    && buffer[15] == macAddressVal[3]
+                    && buffer[16] == macAddressVal[4]
+                    && buffer[17] == macAddressVal[5]) && (buffer[62] == 0xaa || (buffer[62] == 0xbb && buffer[63] == 0xbb)))
+            {
+                source_mac[0] = buffer[24];
+                source_mac[1] = buffer[25];
+                source_mac[2] = buffer[26];
+                source_mac[3] = buffer[27];
+                source_mac[4] = buffer[28];
+                source_mac[5] = buffer[29];
+                if (buffer[62] == 0xaa){//recevied ack
+                    UART_PRINT("ACK Recieved\n\r");
+                }
+                if (buffer[62] == 0xbb && buffer[63] == 0xbb){//recevied data
+                    UART_PRINT("DATA Recieved\n\r");
+                }
+                flag_ACK = 1;
+                sl_Close(qsocket_handle);
+                return 1;
             }
-            if (buffer[62] == 0xbb && buffer[63] == 0xbb){//recevied data
-                UART_PRINT("DATA Recieved\n\r");
-            }
-            flag_ACK = 1;
-            sl_Close(qsocket_handle);
-            return 1;
         }
     }
     while (inf){    //ppkts_to_receive--
@@ -1147,7 +1148,7 @@ int main()
             int j;
             for(j=0; j<10; j++){
                 UART_PRINT("Loop #%d\n\r", j);
-                for(i=0;i<1;i++){
+                for(i=0;i<2;i++){
                     source_mac[0] = Mac_array[0][i];
                     source_mac[1] = Mac_array[1][i];
                     source_mac[2] = Mac_array[2][i];
