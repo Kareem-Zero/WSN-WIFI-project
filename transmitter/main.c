@@ -865,7 +865,7 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
             inf = 1;
             break;
         case 3://data
-            RxTime = Seconds_60;
+            RxTime = 20;
             inf = 0;
     }
     int j = 0;
@@ -888,10 +888,10 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
                 source_mac[3] = buffer[27];
                 source_mac[4] = buffer[28];
                 source_mac[5] = buffer[29];
-                if (buffer[62] == 0xaa){//recevied ack
+                if (buffer[62] == 0xaa){//received ack
                     UART_PRINT("ACK Recieved\n\r");
                 }
-                if (buffer[62] == 0xbb && buffer[63] == 0xbb){//recevied data
+                if (buffer[62] == 0xbb && buffer[63] == 0xbb){//received data
                     UART_PRINT("DATA Recieved\n\r");
                 }
                 flag_ACK = 1;
@@ -1109,13 +1109,6 @@ int main()
                                1 /*PolicyValLen*/);
     srand((macAddressVal[0] * macAddressVal[1] * macAddressVal[2] * macAddressVal[3] * macAddressVal[4] * macAddressVal[5]) % RAND_MAX);
     _u8 source_mac[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
-    clock_t begin = clock();
-
-    double seconds;
-    time_t started=time(NULL);
-    /* here, do your time-consuming job */
-
-
     while (iFlag)
     {
         switch (flag_function){
@@ -1131,25 +1124,21 @@ int main()
             }
             UART_PRINT("Waiting for ACKs\n\r");
             available_sources=0;
-            for(i=0; i<3; i++){
+            for(i=0; i<2; i++){
                 source = TransceiverModeRx(flag_channel, source_mac, 1);
                 UART_PRINT("source: %d\n\r", source);
                 if (source==1){
                     available_sources++;
-                    UART_PRINT("Recieved Ack No: %d\n\r",i);
+                    UART_PRINT("Received Ack No: %d\n\r",i);
                     tabulate(source_mac);
                 }
             }
             if(available_sources == 0)continue;
             int j;
+            packtets_sent_counter = 0;
+            packtets_received_counter = 0;
             for(j=0; j<10; j++){
-                clock_t end = clock();
-                double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-
-
-                seconds=difftime(time(NULL),started);
-
-                UART_PRINT("\n\rLoop #%d @%d\n\r", j, seconds);
+                UART_PRINT("\n\rLoop #%d\n\r", j);
                 for(i=0;i<available_sources;i++){
                     source_mac[0] = Mac_array[0][i];
                     source_mac[1] = Mac_array[1][i];
@@ -1196,6 +1185,7 @@ int main()
                 TransceiverModeRx(flag_channel, source_mac, 2);
                 UART_PRINT("received request, preparing data for transmission \n\r");
 //                interpackettiming((flag_interpackettime + 1));
+                random_backoff_delay();
                 lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, 0, 3, source_mac);
                 UART_PRINT("Sent data.\n\r");
             }
