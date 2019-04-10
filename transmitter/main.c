@@ -655,15 +655,15 @@ static int Tx_continuous(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
         message[index] = source_mac[index - 4];
     }
 
-    interpackettiming(1000);
-//    UART_PRINT("Message Source MAC is : ");
-//    for (index = 0; index < 6; index++){
-//        message[index + 16] = macAddressVal[index];
-//        UART_PRINT("%X", message[index + 16]);
-//        if (index + 16 < 21)
-//            UART_PRINT(".");
-//    }
-//    UART_PRINT("\r\n");
+//    interpackettiming(1000);
+    UART_PRINT("Message Source MAC is : ");
+    for (index = 0; index < 6; index++){
+        message[index + 16] = macAddressVal[index];
+        UART_PRINT("%X", message[index + 16]);
+        if (index + 16 < 21)
+            UART_PRINT(".");
+    }
+    UART_PRINT("\r\n");
 
     iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, iChannel);
     ASSERT_ON_ERROR(iSoc);
@@ -861,7 +861,7 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
             RxTime = 0;
             break;
         case 1://ack and data
-            RxTime = Seconds_60;
+            RxTime = 20;
             inf = 0;
             break;
         case 2://request
@@ -885,7 +885,7 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
                     && buffer[14] == macAddressVal[2]
                     && buffer[15] == macAddressVal[3]
                     && buffer[16] == macAddressVal[4]
-                    && buffer[17] == macAddressVal[5]) && (buffer[62] == 0xaa || (buffer[62] == 0xbb && buffer[63] == 0xbb)))
+                    && buffer[17] == macAddressVal[5]) && ((buffer[62] == 0xaa && buffer[63] == 0xaa && buffer[64] == 0xaa && buffer[65] == 0xaa)|| (buffer[62] == 0xbb && buffer[63] == 0xbb)))
             {
                 source_mac[0] = buffer[24];
                 source_mac[1] = buffer[25];
@@ -1051,7 +1051,7 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
 //}
 //*****************************************************************************
 #define flag_function 1//1: SINK, 2: SOURCE
-#define flag_channel 2
+#define flag_channel 5
 #define flag_rate 5
 #define flag_packets 1
 #define flag_power 15
