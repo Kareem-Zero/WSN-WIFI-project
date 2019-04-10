@@ -655,7 +655,7 @@ static int Tx_continuous(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
         message[index] = source_mac[index - 4];
     }
 
-    interpackettiming(100);
+    interpackettiming(1000);
 //    UART_PRINT("Message Source MAC is : ");
 //    for (index = 0; index < 6; index++){
 //        message[index + 16] = macAddressVal[index];
@@ -689,7 +689,7 @@ static int Tx_continuous(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
         lRetVal = sl_Send(
                 iSoc, message, sizeof(message),
                 SL_RAW_RF_TX_PARAMS(iChannel, rate, iTxPowerLevel, PREAMBLE));
-        interpackettiming(100);
+        interpackettiming(1000);
         if (lRetVal < 0){
             sl_Close(iSoc);
             ASSERT_ON_ERROR(lRetVal);
@@ -1082,8 +1082,7 @@ int main()
         if (DEVICE_NOT_IN_STATION_MODE == lRetVal)
             UART_PRINT(
                     "Failed to configure the device in its default state \n\r");
-        LOOP_FOREVER()
-        ;
+        LOOP_FOREVER();
     }
     UART_PRINT("Device is configured in default state \n\r");
     CLR_STATUS_BIT_ALL(g_ulStatus);
