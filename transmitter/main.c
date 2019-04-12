@@ -378,7 +378,6 @@ static void BoardInit(void)
     PRCMCC3200MCUInit();
 }
 //*****************************************************************************
-#define BUFFER_SIZE 300
 typedef struct
 {
     _u8 rate;_u8 channel;_i8 rssi;_u8 padding;_u32 timestamp;
@@ -552,6 +551,8 @@ int main(){
     CLR_STATUS_BIT_ALL(g_ulStatus);
     sl_Start(0, 0, 0);
     sl_WlanPolicySet(SL_POLICY_CONNECTION,SL_CONNECTION_POLICY(0, 0, 0, 0, 0), &policyVal,1 /*PolicyValLen*/);// reset all network policies
+    DisplayBanner(APPLICATION_NAME);
+    get_my_mac();
     srand((macAddressVal[0] * macAddressVal[1] * macAddressVal[2] * macAddressVal[3] * macAddressVal[4] * macAddressVal[5]) % RAND_MAX);
     if (flag_function == 1) sink_function();
     else source_function();
