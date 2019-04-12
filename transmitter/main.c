@@ -28,7 +28,7 @@
 #define flag_channel 2
 #define flag_rate 5
 #define flag_packets 1
-#define flag_power 5
+#define flag_power 15
 int iSoc;
 #define APPLICATION_NAME        (flag_function==1?"SINK MODE":"SOURCE MODE")
 
