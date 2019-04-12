@@ -893,15 +893,16 @@ void printmessage(_u8 message[], int size)
     UART_PRINT("******************************************\n\r");
     UART_PRINT("\n\r");
 }
+
 int receive_base(_u8 dest_mac[6], _u8 data[6], int timeout){
-    int msg_size = 64;
+    int msg_size = 100;
     char msg[msg_size];
     int j = 0;
     for(j = 0; j < timeout; j++){
         memset(&msg, 0, sizeof(msg));
         sl_Recv(iSoc, msg, sizeof(msg), 0);
 //        UART_PRINT("message received is: ");
-//        printmessage(msg, msg_size);
+        printmessage(msg, msg_size);
         int i = 0, mac_notequal = 0, data_notequal = 0;
         for(i = 0; i < 6; i++){
 //            UART_PRINT("mac %d %02X\n\r",i,msg[12 + i]);
