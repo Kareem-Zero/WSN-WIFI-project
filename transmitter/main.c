@@ -58,173 +58,6 @@ unsigned char macAddressVal[SL_MAC_ADDR_LEN];
 int flag_ACK = 0;
 #define Seconds_60 5
 #define Minutes_10 600
-char RawData_Ping[] = {
-/*---- wlan header start -----*/
-0x88, /* version , type sub type */
-                        0x02, /* Frame control flag */
-                        0x2C, 0x00, 0x00, 0x23, 0x75, 0x55, 0x55, 0x55, /* destination */
-                        0x00, 0x22, 0x75, 0x55, 0x55, 0x55, /* bssid */
-                        0x08, 0x00, 0x28, 0x19, 0x02, 0x85, /* source */
-                        0x80, 0x42, 0x00, 0x00, 0xAA, 0xAA, 0x03, 0x00, 0x00,
-                        0x00, 0x08, 0x00, /* LLC */
-                        /*---- ip header start -----*/
-                        0x45,
-                        0x00, 0x00, 0x54, 0x96, 0xA1, 0x00, 0x00, 0x40, 0x01,
-                        0x57, 0xFA, /* checksum */
-                        0xc0, 0xa8, 0x01, 0x64, /* src ip */
-                        0xc0, 0xa8, 0x01, 0x02, /* dest ip  */
-                        /* payload - ping/icmp */
-                        0xdd,
-                        0xdd, 0xdd, 0xdd, 0x5E, 0x18, 0x00, 0x00, 0x41, 0x08,
-                        0xBB, 0x8D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                        0x00 };
-
-char Hello[] = {
-/*---- wlan header start -----*/
-0x88, /* version , type sub type */
-                 0x02, /* Frame control flag */
-                 0x2C, 0x00, 0x00, 0x23, 0x75, 0x55, 0x55, 0x55, /* destination */
-                 0x00, 0x22, 0x75, 0x55, 0x55, 0x55, /* bssid */
-                 0x08, 0x00, 0x28, 0x19, 0x02, 0x85, /* source */
-                 0x80, 0x42, 0x00, 0x00, 0xAA, 0xAA, 0x03, 0x00, 0x00, 0x00,
-                 0x08, 0x00, /* LLC */
-                 /*---- ip header start -----*/
-                 0x45,
-                 0x00, 0x00, 0x54, 0x96, 0xA1, 0x00, 0x00, 0x40, 0x01, 0x57,
-                 0xFA, /* checksum */
-                 0xc0, 0xa8, 0x01, 0x64, /* src ip */
-                 0xc0, 0xa8, 0x01, 0x02, /* dest ip  */
-                 /* payload - ping/icmp */
-                 0xCC,
-                 0xCC, 0xCC, 0xCC, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                 0x00, 0x00, 0x00, 0x00, 0x00 };
-
-char ACK[] = {
-/*---- wlan header start -----*/
-0x88, /* version , type sub type */
-               0x02, /* Frame control flag */
-               0x2C, 0x00, 0x00, 0x23, 0x75, 0x55, 0x55, 0x55, /* destination */
-               0x00, 0x22, 0x75, 0x55, 0x55, 0x55, /* bssid */
-               0x08, 0x00, 0x28, 0x19, 0x02, 0x85, /* source */
-               0x80, 0x42, 0x00, 0x00, 0xAA, 0xAA, 0x03, 0x00, 0x00, 0x00, 0x08,
-               0x00, /* LLC */
-               /*---- ip header start -----*/
-               0x45,
-               0x00, 0x00, 0x54, 0x96, 0xA1, 0x00, 0x00, 0x40, 0x01, 0x57, 0xFA, /* checksum */
-               0xc0, 0xa8, 0x01, 0x64, /* src ip */
-               0xc0, 0xa8, 0x01, 0x02, /* dest ip  */
-               /* payload - ping/icmp */
-               0xAA,
-               0xAA, 0xAA, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-               0x00, 0x00, 0x00, 0x00 };
-
-char Data[] = {
-/*---- wlan header start -----*/
-0x88, /* version , type sub type */
-                0x02, /* Frame control flag */
-                0x2C, 0x00, 0x00, 0x23, 0x75, 0x55, 0x55, 0x55, /* destination */
-                0x00, 0x22, 0x75, 0x55, 0x55, 0x55, /* bssid */
-                0x08, 0x00, 0x28, 0x19, 0x02, 0x85, /* source */
-                0x80, 0x42, 0x00, 0x00, 0xAA, 0xAA, 0x03, 0x00, 0x00, 0x00,
-                0x08, 0x00, /* LLC */
-                /*---- ip header start -----*/
-                0x45,
-                0x00, 0x00, 0x54, 0x96, 0xA1, 0x00, 0x00, 0x40, 0x01, 0x57,
-                0xFA, /* checksum */
-                0xc0, 0xa8, 0x01, 0x64, /* src ip */
-                0xc0, 0xa8, 0x01, 0x02, /* dest ip  */
-                /* payload - ping/icmp */
-                0xbb,
-                0xbb, 0xbb, 0xbb, 0x5E, 0x18, 0x00, 0x00, 0x41, 0x08, 0xBB,
-                0x8D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, 0x00 };
 _u8 Mac_array[6][10];
 int i_mac_array = 0;
 #if defined(ccs)
@@ -238,9 +71,6 @@ static int Tx_continuous(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
                          int iTxPowerLevel, long dIntervalMiliSec,
                          int NumberOfSeconds, int message_type,
                          _u8 source_mac[6]);
-//static int transmit(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
-//                    int iTxPowerLevel, long dIntervalMiliSec,
-//                    int NumberOfSeconds, int message_type, _u8 source_mac[6]);
 static void DisplayBanner(char * AppName);
 static void BoardInit(void);
 static void interpackettiming(int);
@@ -258,20 +88,6 @@ typedef struct Packet
     //  App layer
     _u32 app_data;_u32 app_timestamp;
 } Packet;
-//_u8 * Packet_to_Array(Packet packet){
-//    _u8 *packet_array = malloc(44 * sizeof(_u8));
-//    packet_array[0] = packet.version;
-//    packet_array[1] = packet.frame_control;
-//
-//    packet_array[2] = packet.mac_src[0];
-//    packet_array[3] = packet.mac_src[1];
-//    packet_array[4] = packet.mac_src[2];
-//    packet_array[5] = packet.mac_src[3];
-//    packet_array[6] = packet.mac_src[4];
-//    packet_array[7] = packet.mac_src[5];
-//
-//    packet_array[8] = packet.mac_dest[0];
-//}
 //*****************************************************************************
 void SimpleLinkWlanEventHandler(SlWlanEvent_t *pWlanEvent)
 {
@@ -536,8 +352,7 @@ static long ConfigureSimpleLinkToDefaultState()
     return lRetVal; // Success
 }
 //*****************************************************************************
-static void DisplayBanner(char * AppName)
-{
+static void DisplayBanner(char * AppName){
     UART_PRINT("\n\n\n\r");
     UART_PRINT("\t\t *************************************************\n\r");
     UART_PRINT("\t\t\t %s       \n\r", AppName);
@@ -569,13 +384,10 @@ typedef struct
     _u8 rate;_u8 channel;_i8 rssi;_u8 padding;_u32 timestamp;
 } TransceiverRxOverHead_t;
 //*****************************************************************************
-void random_backoff_delay(void)
-{
-
+void random_backoff_delay(void){
     long long i;
     int j;
     int k = rand() % 500000;//random
-//    long long k = random() % 500000;//random
     UART_PRINT("This is the rand backoff \n\r");
     UART_PRINT("%d \n\r", k);
     for (i = 0; i < k; i++){ // rand number mod 2 micro seconds
@@ -640,105 +452,15 @@ void send_data(_u8 dest_mac[6]){
 //
 //}
 
-//int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector){   //  remove the extra condition in the if below ( MAC )
-//    TransceiverRxOverHead_t *frameRadioHeader = NULL;
-//    flag_ACK = 0;
-//    int RxTime, inf, extra_var;
-//    int cchannel_number = c1channel_number;
-//    _u8 buffer[BUFFER_SIZE] = { '\0' };
-//    _i32 qsocket_handle = -1;
-//    _i32 recievedBytes = 0;
-//    qsocket_handle = sl_Socket(SL_AF_RF, SL_SOCK_RAW, cchannel_number);
-//    switch (mode_selector){
-//        case 0://hello
-//            inf = 1;
-//            RxTime = 0;
-//            break;
-//        case 1://ack and data
-//            RxTime = 20000;
-//            inf = 0;
-//            break;
-//        case 2://request
-//            RxTime = 0;
-//            inf = 1;
-//            break;
-//        case 3://data
-//            RxTime = 1;
-//            extra_var=1;
-//            inf = 0;
-//            break;
-//    }
-////    UART_PRINT("alive after initial\n\r");
-//    int j = 0;
-//    int k = 0;
-//    for (j = 0; j < RxTime; j++)
-//    {
-//        for (k = 0; k < 5; k++)
-//        {
-//            memset(&buffer[0], 0, sizeof(buffer));
-//            recievedBytes = sl_Recv(qsocket_handle, buffer, BUFFER_SIZE, 0);
-//            frameRadioHeader = (TransceiverRxOverHead_t *) buffer;
-////            interpackettiming(1000);
-////            UART_PRINT("before\n\r");
-//            if ((buffer[12] == macAddressVal[0]
-//                    && buffer[13] == macAddressVal[1]
-//                    && buffer[14] == macAddressVal[2]
-//                    && buffer[15] == macAddressVal[3]
-//                    && buffer[16] == macAddressVal[4]
-//                    && buffer[17] == macAddressVal[5]) && ((buffer[62] == 0xaa && buffer[63] == 0xaa && buffer[64] == 0xaa && buffer[65] == 0xaa)|| (buffer[62] == 0xbb && buffer[63] == 0xbb)))
-//            {
-//                UART_PRINT("Recieved data and RxTime is : %d \n\r ",k);
-//                source_mac[0] = buffer[24];
-//                source_mac[1] = buffer[25];
-//                source_mac[2] = buffer[26];
-//                source_mac[3] = buffer[27];
-//                source_mac[4] = buffer[28];
-//                source_mac[5] = buffer[29];
-//
-//
-//                flag_ACK = 1;
-//                sl_Close(qsocket_handle);
-//                return 1;
-//            }
-////            UART_PRINT("looping \n\r");
-//        }
-//    }
-//    while (inf){    //receiving hello and requests
-//        memset(&buffer[0], 0, sizeof(buffer));
-//        recievedBytes = sl_Recv(qsocket_handle, buffer, BUFFER_SIZE, 0);
-//        frameRadioHeader = (TransceiverRxOverHead_t *) buffer;
-//        if ((buffer[12] == 0xFF && buffer[13] == 0xFF && buffer[14] == 0xFF && buffer[15] == 0xFF && buffer[16] == 0xFF && buffer[17] == 0xFF
-//                && buffer[62] == 0xcc && buffer[63] == 0xcc && buffer[64] == 0xcc && buffer[65] == 0xcc) ||
-//                (buffer[12] == macAddressVal[0] && buffer[13] == macAddressVal[1] && buffer[14] == macAddressVal[2] && buffer[15] == macAddressVal[3]
-//                 && buffer[16] == macAddressVal[4] && buffer[17] == macAddressVal[5] && buffer[62] == 0xdd  && buffer[63] == 0xdd  && buffer[64] == 0xdd  && buffer[65] == 0xdd )){
-//            UART_PRINT("Received a packet: %02x\n\r", buffer[62]);
-//            source_mac[0] = buffer[24];
-//            source_mac[1] = buffer[25];
-//            source_mac[2] = buffer[26];
-//            source_mac[3] = buffer[27];
-//            source_mac[4] = buffer[28];
-//            source_mac[5] = buffer[29];
-//            break;
-//        }
-//    }
-//    sl_Close(qsocket_handle);
-//    return 0;
-//}
-
 void printmessage(_u8 message[], int size)
 {
     int i = 0;
-    UART_PRINT("\n\r");
-    UART_PRINT("\n\r");
-    UART_PRINT("\n\r");
-    UART_PRINT("******************************************\n\r");
+    UART_PRINT("\n\r\n\r\n\r******************************************\n\r");
     for(i = 0; i < size; i++)
     {
         UART_PRINT("%02X\t", (unsigned char) message[i]);
     }
-    UART_PRINT("\n\r");
-    UART_PRINT("******************************************\n\r");
-    UART_PRINT("\n\r");
+    UART_PRINT("\n\r******************************************\n\r\n\r");
 }
 
 int receive_base(_u8 dest_mac[6], _u8 data[6], int timeout){
@@ -788,14 +510,16 @@ int receive_request(){
 
 
 void sink_function(){
-    int packtets_received_counter = 0;
+    int packtets_received_counter = 0, packtets_sent_counter = 0, loop_counter = 0;
     iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, flag_channel);
     while (1){
+        loop_counter++;
         UART_PRINT("Sending request\n\r");
         _u8 dest_mac[6] = {0xd4, 0x36, 0x39, 0x55, 0xac, 0xac};
         send_request(dest_mac);
+        packtets_sent_counter += 1;
         packtets_received_counter += receive_data();
-        UART_PRINT("In= %d\n\r", packtets_received_counter);
+        UART_PRINT("Loop #%d :%d/%d\n\r", loop_counter, packtets_received_counter, packtets_sent_counter);
         MAP_UtilsDelay(40000000);
     }
     sl_Close(iSoc);
@@ -812,200 +536,23 @@ void source_function(){
     sl_Close(iSoc);
 }
 
+void get_my_mac(){
+    unsigned char macAddressLen = SL_MAC_ADDR_LEN;
+    sl_NetCfgGet(SL_MAC_ADDRESS_GET, NULL, &macAddressLen, (unsigned char *) macAddressVal);
+    printmessage(macAddressVal, 6);
+}
 
-
-#define flag_interpackettime 1000
-#include <time.h>
-
-int packtets_sent_counter = 0;
-int available_sources = 0;
-int source=0;
-int main()
-{
+int main(){
     unsigned char policyVal;
     BoardInit();    // Initialize Board configuration
     PinMuxConfig();    //Pin muxing
     InitTerm();    // Configuring UART
-    DisplayBanner(APPLICATION_NAME);
     InitializeAppVariables();
-    // Following function configure the device to default state by cleaning the persistent settings stored in NVMEM (viz. connection profiles & policies, power policy etc)
-    // Applications may choose to skip this step if the developer is sure that the device is in its default state at start of applicaton
-    // Note that all profiles and persistent settings that were done on the device will be lost
     ConfigureSimpleLinkToDefaultState();
     CLR_STATUS_BIT_ALL(g_ulStatus);
-    // Assumption is that the device is configured in station mode already
-    // and it is in its default state
     sl_Start(0, 0, 0);
-
-    unsigned char macAddressLen = SL_MAC_ADDR_LEN;
-    sl_NetCfgGet(SL_MAC_ADDRESS_GET, NULL, &macAddressLen, (unsigned char *) macAddressVal);
     sl_WlanPolicySet(SL_POLICY_CONNECTION,SL_CONNECTION_POLICY(0, 0, 0, 0, 0), &policyVal,1 /*PolicyValLen*/);// reset all network policies
-    UART_PRINT("MAC Address is : ");
-    int i;
-    for (i = 0; i < macAddressLen; i++){
-        UART_PRINT("%02X", (unsigned char) macAddressVal[i]);
-        if (i < macAddressLen - 1)
-            UART_PRINT(".");
-    }
-    UART_PRINT("\n\r");
     srand((macAddressVal[0] * macAddressVal[1] * macAddressVal[2] * macAddressVal[3] * macAddressVal[4] * macAddressVal[5]) % RAND_MAX);
-
-    if (flag_function == 1){
-        sink_function();
-    }else{
-        source_function();
-    }
+    if (flag_function == 1) sink_function();
+    else source_function();
 }
-//int old_main(){
-//    _u8 source_mac[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
-//    int timeslice=0;
-//    int nofpackets=2;
-//    double pdr[4];
-//
-//        switch (flag_function)
-//        {
-//        case (1):    //SINK node;
-//
-//                   UART_PRINT(
-//                    "\n\r//////////////////////   SINK MODE \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \n\r\n\r");
-////            UART_PRINT("Sending Hello\n\r");
-////            lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0,0, 1, source_mac);
-////            random_backoff_delay();
-////            if (lRetVal < 0){
-////                UART_PRINT("Error during transmission of raw data\n\r");
-////                LOOP_FOREVER();
-////            }
-////            UART_PRINT("Waiting for ACKs\n\r");
-////            available_sources=0;
-////            for(i=0; i<2; i++){
-////                source = TransceiverModeRx(flag_channel, source_mac, 1);
-////                UART_PRINT("source: %d\n\r", source);
-////                if (source==1){
-////                    available_sources++;
-////                    UART_PRINT("Received Ack No: %d\n\r",i);
-////                    tabulate(source_mac);
-////                }
-////            }
-//        available_sources = 1;
-////        Mac_array[0][0] = 0xd4;
-////        Mac_array[1][0] = 0x36;
-////        Mac_array[2][0] = 0x39;
-////        Mac_array[3][0] = 0x55;
-////        Mac_array[4][0] = 0xac;
-////        Mac_array[5][0] = 0x79;
-//
-//        Mac_array[0][0] = 0xd4;
-//        Mac_array[1][0] = 0x36;
-//        Mac_array[2][0] = 0x39;
-//        Mac_array[3][0] = 0x55;
-//        Mac_array[4][0] = 0xac;
-//        Mac_array[5][0] = 0xac;
-//         //   if(available_sources == 0)continue;
-//            int j;
-//        for(trials=0; trials<4; trials++)
-//        {
-//            packtets_sent_counter = 0;
-//            packtets_received_counter = 0;
-//
-//            before = clock();
-//            timeslice+=2;
-//            for(j=0; j < nofpackets; j++)
-//            {
-//                for(i=0;i<available_sources;i++)
-//                {
-//                    source_mac[0] = Mac_array[0][i];
-//                    source_mac[1] = Mac_array[1][i];
-//                    source_mac[2] = Mac_array[2][i];
-//                    source_mac[3] = Mac_array[3][i];
-//                    source_mac[4] = Mac_array[4][i];
-//                    source_mac[5] = Mac_array[5][i];
-////                    int kk;
-////                    UART_PRINT("Sending to : ");
-////                    for (kk=0; kk<6; kk++){
-////                        UART_PRINT("%x",source_mac[kk]);
-////                        if(kk<6)
-////                            UART_PRINT(".");
-////                    }
-////                    UART_PRINT("\n\r");
-//                    lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, 0, 0, source_mac);
-//                    if(!lRetVal){
-//                        UART_PRINT("sent data \n\r");
-//                    }UART_PRINT("1 \n\r");
-//                    packtets_sent_counter++;
-//                    UART_PRINT("2 \n\r");
-//                    //interpackettiming(1);
-//                    UART_PRINT("3 \n\r");
-//                    lRetVal=TransceiverModeRx(flag_channel, source_mac, 3);
-//                    UART_PRINT("4 \n\r");
-//                    if(lRetVal)
-//                    packtets_received_counter +=1 ;
-//                }
-//                UART_PRINT("done \n\r");
-//                //interpacket timing = 2, 4, 8
-//                UART_PRINT("Loop #%d out: %d in: %d\n\r\n\r", j, packtets_sent_counter, packtets_received_counter);
-//                interpackettiming(timeslice);
-//            }
-//            difference = clock() - before;
-//            UART_PRINT("alive after difference\n\r");
-//            msec[trials] = difference * 1000 / CLOCKS_PER_SEC;
-//            UART_PRINT("live after msec\n\r");
-//            pdr[trials] = packtets_received_counter * 100.0 / packtets_sent_counter;
-//            UART_PRINT("alive after pdr calc\n\r");
-//
-//        }
-//            UART_PRINT("alive after 4 trials \n\r");
-//
-//                for(trials=0; trials<4; trials++)
-//                    UART_PRINT("for inter-time=%d, PDR= %f, time taken = %d", 2 * (trials + 1), pdr[trials], msec[trials]);
-//
-//            UART_PRINT("///////////////////////////  Done with time-slice \n\r\n\r\n\r");
-//
-//            break;
-//        case (2):    //SOURCE node
-//            UART_PRINT(
-//                    "\n\r//////////////////////   SOURCE MODE \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \n\r\n\r");
-////            UART_PRINT("size of Packet = %d \n\r",sizeof(Packet));
-//
-////            TransceiverModeRx(flag_channel, source_mac, 0);//waiting for hello
-//////            UART_PRINT("Recieved Hello\n\r");
-////
-////
-////            interpackettiming((flag_interpackettime + 1));
-////            random_backoff_delay();
-////            lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0,0, 2, source_mac);
-////            UART_PRINT("Sent Ack\n\r");
-//
-//            while(1){
-//                UART_PRINT("Waiting for request.\n\r");
-//                TransceiverModeRx(flag_channel, source_mac, 2);
-//                UART_PRINT("received request, preparing data for transmission \n\r");
-//                interpackettiming((flag_interpackettime + 1000));
-////                random_backoff_delay();
-//
-//                lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, 0, 3, source_mac);
-//                UART_PRINT("Sent data.\n\r");
-//            }
-//
-////            UART_PRINT("Recieved Request\n\r");
-////            //waiting for request
-////
-////            UART_PRINT("Sent Data\n\r");
-////            TransceiverModeRx(flag_channel, source_mac, 1);
-////            UART_PRINT("Recieved Ack\n\r");
-////            //  change UART_PRINT(ACK) to proper location in RX function and Resend data
-////            Source_resend_counter = 0;
-////            while ((!flag_ACK) && (Source_resend_counter < 5))
-////            {
-////                lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power,
-////                                        0, flag_interpackettime, 2, source_mac);
-////                UART_PRINT("Sent Data\n\r");
-////                TransceiverModeRx(flag_channel, source_mac, 1);
-////                Source_resend_counter++;
-////            }
-//            break;
-//
-//        }
-//
-//
-//    return 0;
-//}
