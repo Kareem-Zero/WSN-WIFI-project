@@ -823,14 +823,6 @@ int available_sources = 0;
 int source=0;
 int main()
 {
-//    int trials=0;
-//    int msec[4];
-//    clock_t before;
-//    clock_t difference;
-//    int iFlag = 1;
-//    int Source_resend_counter = 0;
-//    long lRetVal = -1;
-//    char cChar;
     unsigned char policyVal;
     BoardInit();    // Initialize Board configuration
     PinMuxConfig();    //Pin muxing
@@ -840,16 +832,17 @@ int main()
     // Following function configure the device to default state by cleaning the persistent settings stored in NVMEM (viz. connection profiles & policies, power policy etc)
     // Applications may choose to skip this step if the developer is sure that the device is in its default state at start of applicaton
     // Note that all profiles and persistent settings that were done on the device will be lost
-    lRetVal = ConfigureSimpleLinkToDefaultState();
+    ConfigureSimpleLinkToDefaultState();
     CLR_STATUS_BIT_ALL(g_ulStatus);
     // Assumption is that the device is configured in station mode already
     // and it is in its default state
-    lRetVal = sl_Start(0, 0, 0);
-    int i;
+    sl_Start(0, 0, 0);
+
     unsigned char macAddressLen = SL_MAC_ADDR_LEN;
     sl_NetCfgGet(SL_MAC_ADDRESS_GET, NULL, &macAddressLen, (unsigned char *) macAddressVal);
-    lRetVal = sl_WlanPolicySet(SL_POLICY_CONNECTION,SL_CONNECTION_POLICY(0, 0, 0, 0, 0), &policyVal,1 /*PolicyValLen*/);// reset all network policies
+    sl_WlanPolicySet(SL_POLICY_CONNECTION,SL_CONNECTION_POLICY(0, 0, 0, 0, 0), &policyVal,1 /*PolicyValLen*/);// reset all network policies
     UART_PRINT("MAC Address is : ");
+    int i;
     for (i = 0; i < macAddressLen; i++){
         UART_PRINT("%02X", (unsigned char) macAddressVal[i]);
         if (i < macAddressLen - 1)
