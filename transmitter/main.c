@@ -351,14 +351,7 @@ static long ConfigureSimpleLinkToDefaultState()
     InitializeAppVariables();
     return lRetVal; // Success
 }
-//*****************************************************************************
-static void DisplayBanner(char * AppName){
-    UART_PRINT("\n\n\n\r");
-    UART_PRINT("\t\t *************************************************\n\r");
-    UART_PRINT("\t\t\t %s       \n\r", AppName);
-    UART_PRINT("\t\t *************************************************\n\r");
-    UART_PRINT("\n\n\n\r");
-}
+
 //*****************************************************************************
 static void BoardInit(void)
 {
@@ -382,7 +375,9 @@ typedef struct
 {
     _u8 rate;_u8 channel;_i8 rssi;_u8 padding;_u32 timestamp;
 } TransceiverRxOverHead_t;
-//*****************************************************************************
+
+#define delay(millis) MAP_UtilsDelay((40000/3)*millis)
+
 void random_backoff_delay(void){
     long long i;
     int j;
@@ -393,36 +388,6 @@ void random_backoff_delay(void){
         for (j = 0; j < 8; j++){ // 2 microsecond delay
         }
     }
-}
-//*****************************************************************************
-
-void send_base(_u8 dest_mac[6],_u8 data[6]){
-    int msg_size = 64;
-    char msg[msg_size];
-    memset(&msg, 0, sizeof(msg));
-    int i = 0;
-    for(i = 0; i < 6; i++){
-        msg[i + 4] = dest_mac[i];
-        msg[i + 16] = macAddressVal[i];
-        msg[i + 54] = data[i];
-    }
-    sl_Send(iSoc, msg, sizeof(msg),SL_RAW_RF_TX_PARAMS(flag_channel,(SlRateIndex_e)flag_rate, flag_power, PREAMBLE));
-}
-
-void send_hello(){
-    _u8 dest_mac[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-    _u8 data[] = {0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc};
-    send_base(dest_mac, data);
-}
-
-void send_request(_u8 dest_mac[6]){
-    _u8 data[6] = {0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd};
-    send_base(dest_mac, data);
-}
-
-void send_data(_u8 dest_mac[6]){
-    _u8 data[6] = {0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb};
-    send_base(dest_mac, data);
 }
 
 //void tabulate(_u8 mac_add[6]){
@@ -451,32 +416,63 @@ void send_data(_u8 dest_mac[6]){
 //
 //}
 
-void printmessage(_u8 message[], int size)
-{
+static void DisplayBanner(char * AppName){
+    UART_PRINT("\n\n\n\r*************************************************\n\r\t\t %s       \n\r*************************************************", AppName);
+}
+
+void printmessage(_u8 message[], int size){
     int i = 0;
     UART_PRINT("\n\r\n\r\n\r******************************************\n\r");
     for(i = 0; i < size; i++)
-    {
         UART_PRINT("%02X\t", (unsigned char) message[i]);
-    }
     UART_PRINT("\n\r******************************************\n\r\n\r");
 }
 
+#define msg_size 100
+char msg[msg_size];
+_u8 data[6];
+_u8 dest_mac[6];
+
+void send_base(_u8 dest_mac[6],_u8 data[6]){
+    memset(&msg, 0, sizeof(msg));
+    int i = 0;
+    for(i = 0; i < 6; i++){
+        msg[i + 4] = dest_mac[i];
+        msg[i + 16] = macAddressVal[i];
+        msg[i + 54] = data[i];
+    }
+    sl_Send(iSoc, msg, msg_size,SL_RAW_RF_TX_PARAMS(flag_channel,(SlRateIndex_e)flag_rate, flag_power, PREAMBLE));
+}
+
+void send_hello(){
+    int i = 0;
+    for(i = 0; i < 6; i++){
+        dest_mac[i] = 0xff;
+        data[i] = 0xcc;
+    }
+    send_base(dest_mac, data);
+}
+
+void send_request(_u8 dest_mac[6]){
+    int i = 0;
+    for(i = 0; i < 6; i++) data[i] = 0xdd;
+    send_base(dest_mac, data);
+}
+
+void send_data(_u8 dest_mac[6]){
+    int i = 0;
+    for(i = 0; i < 6; i++) data[i] = 0xbb;
+    send_base(dest_mac, data);
+}
+
 int receive_base(_u8 dest_mac[6], _u8 data[6], int timeout){
-    int msg_size = 100;
-    char msg[msg_size];
-    int j = 0;
+    int j = 0, i = 0, mac_notequal = 0, data_notequal = 0;
     for(j = 0; j < timeout; j++){
-        memset(&msg, 0, sizeof(msg));
-        sl_Recv(iSoc, msg, sizeof(msg), 0);
-        int i = 0, mac_notequal = 0, data_notequal = 0;
-        for(i = 0; i < 6; i++){
-            if(msg[12 + i] != dest_mac[i]){
-                mac_notequal = 1;
-            }
-            if(msg[62 + i] != data[i]){
-                data_notequal = 1;
-            }
+        memset(&msg, 0, msg_size);
+        sl_Recv(iSoc, msg, msg_size, 0);
+        for(i = 0, mac_notequal = 0, data_notequal = 0; i < 6; i++){
+            if(msg[12 + i] != dest_mac[i]) mac_notequal = 1;
+            if(msg[62 + i] != data[i]) data_notequal = 1;
         }
         if(mac_notequal == 0 && data_notequal == 0) return 1;
     }
@@ -484,54 +480,52 @@ int receive_base(_u8 dest_mac[6], _u8 data[6], int timeout){
 }
 
 int receive_data(){
-    _u8 dest_mac[6];
     int i;
     for(i = 0; i < 6; i++){
-       dest_mac[i] = macAddressVal[i];
-   }
-    _u8 data[6] = {0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb};
+        dest_mac[i] = macAddressVal[i];
+        data[i] = 0xbb;
+    }
     return receive_base(dest_mac, data, 100);
 }
 
 int receive_request(){
-    _u8 dest_mac[6];
     int i;
     for(i = 0; i < 6; i++){
-       dest_mac[i] = macAddressVal[i];
-   }
-    _u8 data[6] = {0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd};
+        dest_mac[i] = macAddressVal[i];
+        data[i] = 0xdd;
+    }
     return receive_base(dest_mac, data, 1000);
 }
 
 int get_data(int nof_loops, int inter_packet_delay, _u8 dest_mac[][6], int devices_count){
-    int packtets_received_counter = 0;
+    int packtets_received_counter = 0, i = 0;
     while (nof_loops--){
-        int i = 0;
         for(i = 0; i < devices_count; i++){
+            if(nof_loops % 10 == 0)UART_PRINT("1");
             send_request(dest_mac[i]);
             packtets_received_counter += receive_data();
         }
-        MAP_UtilsDelay(inter_packet_delay);
+        delay(inter_packet_delay);
     }
     return packtets_received_counter;
 }
 
 void sink_function(){
-    int nof_loops = 200, packtets_received_counter = 0;
+    int nof_loops = 1000, packtets_received_counter = 0, inter_packet_delay = 10;
     iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, flag_channel);
     _u8 dest_mac[2][6] = {{0xd4, 0x36, 0x39, 0x55, 0xac, 0xac},
                                   {0xf4, 0x5e, 0xab, 0xa1, 0xdc, 0x0f}};
-    packtets_received_counter = get_data(nof_loops, 0, dest_mac, 2);
-    UART_PRINT("Finished with success rate of : %d/%d\n\r",  packtets_received_counter, nof_loops * 2);
+    packtets_received_counter = get_data(nof_loops, inter_packet_delay, dest_mac, 2);
+    UART_PRINT("\n\rFinished with success rate of : %d/%d\n\r",  packtets_received_counter, nof_loops * 2);
     sl_Close(iSoc);
 }
 
 void source_function(){
     int packets_received_counter = 0;
     iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, flag_channel);
+    _u8 dest_mac[6] = {0xf4, 0xb8, 0x5e, 0x00, 0xfe, 0x27};
     while (1){
-        UART_PRINT("Received %d packets\n\r", packets_received_counter);
-        _u8 dest_mac[6] = {0xf4, 0xb8, 0x5e, 0x00, 0xfe, 0x27};
+        if(packets_received_counter % 100 == 0) UART_PRINT("Received %d packets\n\r", packets_received_counter);
         packets_received_counter += receive_request();
         send_data(dest_mac);
     }
@@ -545,7 +539,6 @@ void get_my_mac(){
 }
 
 int main(){
-    unsigned char policyVal;
     BoardInit();    // Initialize Board configuration
     PinMuxConfig();    //Pin muxing
     InitTerm();    // Configuring UART
@@ -553,6 +546,7 @@ int main(){
     ConfigureSimpleLinkToDefaultState();
     CLR_STATUS_BIT_ALL(g_ulStatus);
     sl_Start(0, 0, 0);
+    unsigned char policyVal;
     sl_WlanPolicySet(SL_POLICY_CONNECTION,SL_CONNECTION_POLICY(0, 0, 0, 0, 0), &policyVal,1 /*PolicyValLen*/);// reset all network policies
     DisplayBanner(APPLICATION_NAME);
     get_my_mac();
