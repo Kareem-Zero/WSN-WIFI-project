@@ -584,146 +584,9 @@ void random_backoff_delay(void)
     }
 }
 //*****************************************************************************
-static int Tx_continuous(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
-                         int iTxPowerLevel, long dIntervalMiliSec,
-                         int NumberOfSeconds, int message_type,
-                         _u8 source_mac[6])
-{
-    int iSoc;
-    long lRetVal = -1;
-    long ulIndex;
-    _u8 buffer[300] = { '\0' };
-    char message[] = {
-    /*---- wlan header start -----*/
-                       0x00, /* version , type sub type */
-                       0x00, /* Frame control flag */
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* destination */
-                       0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, /* bssid */
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* source */
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                       0x00, 0x00, 0x00, /* LLC */
-                       /*---- ip header start -----*/
-                       0x00,
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                       0x00, 0x00, /* checksum */
-                       0x00, 0x00, 0x00, 0x00, /* src ip */
-                       0x00, 0x08, 0x00, 0x00, /* dest ip  */
-                       /* payload - ping/icmp */
-                       0xCC,
-                       0xCC, 0xCC, 0xCC, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                       0x00 };
-    int index;
-    switch (message_type){
-    case 0: //Request
-        for (index = 0; index < sizeof(message); index++){
-            message[index] = RawData_Ping[index];
-        }
-        break;
-    case 1: //hello
-        for (index = 0; index < sizeof(message); index++){
-            message[index] = Hello[index];
-        }
-        break;
-    case 2: //ack
-        for (index = 0; index < sizeof(message); index++){
-            message[index] = ACK[index];
-        }
-        UART_PRINT("preparaing ACK ");
-        break;
-    case 3: //data
-        for (index = 0; index < sizeof(message); index++){
-            message[index] = Data[index];
-        }
-        break;
-    }
-    for (index = 4; index < 10; index++){
-        message[index] = source_mac[index - 4];
-    }
-
-//    interpackettiming(1000);
-    UART_PRINT("Sending to : ");
-    for (index = 0; index < 6; index++){
-        message[index + 16] = macAddressVal[index];
-        UART_PRINT("%X", source_mac[index]);
-        if (index + 16 < 21)
-            UART_PRINT(".");
-    }
-    UART_PRINT("\r\n");
-
-    iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, iChannel);
-    ASSERT_ON_ERROR(iSoc);
-
-//  while loop for recv and backoff
-    memset(&buffer[0], 0, sizeof(buffer));
-    lRetVal = sl_Recv(iSoc, buffer, sizeof(buffer), 0);
-//    UART_PRINT("lRetVal 1 is    ");
-//    UART_PRINT("%d \n\r", lRetVal);
-    int number_of_backoffs = 3;
-  //  while (number_of_backoffs>=0 &&(lRetVal == 0 || lRetVal == SL_EAGAIN || lRetVal == 125|| lRetVal == 78|| lRetVal == 86|| lRetVal == 294 || lRetVal == 117 || lRetVal == 138 || lRetVal == 133|| lRetVal == 99|| lRetVal == 124|| lRetVal == 61|| lRetVal == 132)){
-  //      number_of_backoffs--;
-    UART_PRINT("alive before while\n\r");
-    while (number_of_backoffs>=0 && lRetVal >=0){
-      number_of_backoffs--;
-          memset(&buffer[0], 0, sizeof(buffer));
-        lRetVal = sl_Recv(iSoc, buffer, sizeof(buffer), 0);
-        UART_PRINT("alive in while backoff loop %d\n\r", 3-number_of_backoffs);
-
-        //        UART_PRINT("lRetVal loop is    ");
-//        UART_PRINT("%d", lRetVal);
-//        random_backoff_delay();
-    }
-
-//    UART_PRINT("Transmitting data...\r\n");
-    UART_PRINT("alive before send\n\r");
-   for (ulIndex = 0; ulIndex < iNumberOfPackets; ulIndex++){
-        lRetVal = sl_Send(iSoc, message, sizeof(message),SL_RAW_RF_TX_PARAMS(iChannel, rate, iTxPowerLevel, PREAMBLE));
-//        interpackettiming(1);
-        UART_PRINT("alive after send\n\r");
-        if (lRetVal < 0){
-            sl_Close(iSoc);
-            ASSERT_ON_ERROR(lRetVal);
-        }
-        //Sleep(dIntervalMiliSec);
-        //MAP_UtilsDelay(4000000);
-        MAP_UtilsDelay(4000);
-    }
-
-    lRetVal = sl_Close(iSoc);
-    ASSERT_ON_ERROR(lRetVal);
-    UART_PRINT("alive before return\n\r");
-
-
-//    UART_PRINT("Transmission complete.\r\n");
-    return SUCCESS;
-}
 
 void send_base(_u8 dest_mac[6],_u8 data[6]){
-    printmessage(dest_mac, 6);
+//    printmessage(dest_mac, 6);
     int msg_size = 64;
     char msg[msg_size];
     memset(&msg, 0, sizeof(msg));
@@ -752,132 +615,117 @@ void send_data(_u8 dest_mac[6]){
     send_base(dest_mac, data);
 }
 
-void tabulate(_u8 mac_add[6])
-{
-    int j, i;
-    for (j = 0; j < 6; j++)
-    {
-        Mac_array[j][i_mac_array] = mac_add[j];
-    }
-    i_mac_array++;
+//void tabulate(_u8 mac_add[6]){
+//    int j, i;
+//    for (j = 0; j < 6; j++)
+//    {
+//        Mac_array[j][i_mac_array] = mac_add[j];
+//    }
+//    i_mac_array++;
+//
+//    for (j = 0; j < 10; j++)
+//    {
+//        UART_PRINT("MAC Address %X : ", j);
+//        for (i = 0; i < 6; i++)
+//        {
+//            UART_PRINT("%02x", (unsigned char) Mac_array[i][j]);
+//            if (i < 5)
+//            {
+//                UART_PRINT(".");
+//            }
+//        }
+//        UART_PRINT("\n\r");
+//    }
+//    UART_PRINT("\n\r");
+//    // check global mac array for repeated mac addresses
+//
+//}
 
-    for (j = 0; j < 10; j++)
-    {
-        UART_PRINT("MAC Address %X : ", j);
-        for (i = 0; i < 6; i++)
-        {
-            UART_PRINT("%02x", (unsigned char) Mac_array[i][j]);
-            if (i < 5)
-            {
-                UART_PRINT(".");
-            }
-        }
-        UART_PRINT("\n\r");
-    }
-    UART_PRINT("\n\r");
-    // check global mac array for repeated mac addresses
+//int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector){   //  remove the extra condition in the if below ( MAC )
+//    TransceiverRxOverHead_t *frameRadioHeader = NULL;
+//    flag_ACK = 0;
+//    int RxTime, inf, extra_var;
+//    int cchannel_number = c1channel_number;
+//    _u8 buffer[BUFFER_SIZE] = { '\0' };
+//    _i32 qsocket_handle = -1;
+//    _i32 recievedBytes = 0;
+//    qsocket_handle = sl_Socket(SL_AF_RF, SL_SOCK_RAW, cchannel_number);
+//    switch (mode_selector){
+//        case 0://hello
+//            inf = 1;
+//            RxTime = 0;
+//            break;
+//        case 1://ack and data
+//            RxTime = 20000;
+//            inf = 0;
+//            break;
+//        case 2://request
+//            RxTime = 0;
+//            inf = 1;
+//            break;
+//        case 3://data
+//            RxTime = 1;
+//            extra_var=1;
+//            inf = 0;
+//            break;
+//    }
+////    UART_PRINT("alive after initial\n\r");
+//    int j = 0;
+//    int k = 0;
+//    for (j = 0; j < RxTime; j++)
+//    {
+//        for (k = 0; k < 5; k++)
+//        {
+//            memset(&buffer[0], 0, sizeof(buffer));
+//            recievedBytes = sl_Recv(qsocket_handle, buffer, BUFFER_SIZE, 0);
+//            frameRadioHeader = (TransceiverRxOverHead_t *) buffer;
+////            interpackettiming(1000);
+////            UART_PRINT("before\n\r");
+//            if ((buffer[12] == macAddressVal[0]
+//                    && buffer[13] == macAddressVal[1]
+//                    && buffer[14] == macAddressVal[2]
+//                    && buffer[15] == macAddressVal[3]
+//                    && buffer[16] == macAddressVal[4]
+//                    && buffer[17] == macAddressVal[5]) && ((buffer[62] == 0xaa && buffer[63] == 0xaa && buffer[64] == 0xaa && buffer[65] == 0xaa)|| (buffer[62] == 0xbb && buffer[63] == 0xbb)))
+//            {
+//                UART_PRINT("Recieved data and RxTime is : %d \n\r ",k);
+//                source_mac[0] = buffer[24];
+//                source_mac[1] = buffer[25];
+//                source_mac[2] = buffer[26];
+//                source_mac[3] = buffer[27];
+//                source_mac[4] = buffer[28];
+//                source_mac[5] = buffer[29];
+//
+//
+//                flag_ACK = 1;
+//                sl_Close(qsocket_handle);
+//                return 1;
+//            }
+////            UART_PRINT("looping \n\r");
+//        }
+//    }
+//    while (inf){    //receiving hello and requests
+//        memset(&buffer[0], 0, sizeof(buffer));
+//        recievedBytes = sl_Recv(qsocket_handle, buffer, BUFFER_SIZE, 0);
+//        frameRadioHeader = (TransceiverRxOverHead_t *) buffer;
+//        if ((buffer[12] == 0xFF && buffer[13] == 0xFF && buffer[14] == 0xFF && buffer[15] == 0xFF && buffer[16] == 0xFF && buffer[17] == 0xFF
+//                && buffer[62] == 0xcc && buffer[63] == 0xcc && buffer[64] == 0xcc && buffer[65] == 0xcc) ||
+//                (buffer[12] == macAddressVal[0] && buffer[13] == macAddressVal[1] && buffer[14] == macAddressVal[2] && buffer[15] == macAddressVal[3]
+//                 && buffer[16] == macAddressVal[4] && buffer[17] == macAddressVal[5] && buffer[62] == 0xdd  && buffer[63] == 0xdd  && buffer[64] == 0xdd  && buffer[65] == 0xdd )){
+//            UART_PRINT("Received a packet: %02x\n\r", buffer[62]);
+//            source_mac[0] = buffer[24];
+//            source_mac[1] = buffer[25];
+//            source_mac[2] = buffer[26];
+//            source_mac[3] = buffer[27];
+//            source_mac[4] = buffer[28];
+//            source_mac[5] = buffer[29];
+//            break;
+//        }
+//    }
+//    sl_Close(qsocket_handle);
+//    return 0;
+//}
 
-}
-//*****************************************************************************
-void interpackettiming(int NumberOfMilliSeconds)
-{
-    int j = 0;
-    int k = 0;
-//    UART_PRINT("Interpacket time gap . . .");
-    for (j = 0; j < NumberOfMilliSeconds; j++)
-    {
-        for (k = 0; k < 40; k++)
-        {
-        }
-//        UART_PRINT("%d ", j + 1);
-//        UART_PRINT("Seconds elapsed \n\r");
-    }
-}
-//*****************************************************************************
-int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector){   //  remove the extra condition in the if below ( MAC )
-    TransceiverRxOverHead_t *frameRadioHeader = NULL;
-    flag_ACK = 0;
-    int RxTime, inf, extra_var;
-    int cchannel_number = c1channel_number;
-    _u8 buffer[BUFFER_SIZE] = { '\0' };
-    _i32 qsocket_handle = -1;
-    _i32 recievedBytes = 0;
-    qsocket_handle = sl_Socket(SL_AF_RF, SL_SOCK_RAW, cchannel_number);
-    switch (mode_selector){
-        case 0://hello
-            inf = 1;
-            RxTime = 0;
-            break;
-        case 1://ack and data
-            RxTime = 20000;
-            inf = 0;
-            break;
-        case 2://request
-            RxTime = 0;
-            inf = 1;
-            break;
-        case 3://data
-            RxTime = 1;
-            extra_var=1;
-            inf = 0;
-            break;
-    }
-//    UART_PRINT("alive after initial\n\r");
-    int j = 0;
-    int k = 0;
-    for (j = 0; j < RxTime; j++)
-    {
-        for (k = 0; k < 5; k++)
-        {
-            memset(&buffer[0], 0, sizeof(buffer));
-            recievedBytes = sl_Recv(qsocket_handle, buffer, BUFFER_SIZE, 0);
-            frameRadioHeader = (TransceiverRxOverHead_t *) buffer;
-//            interpackettiming(1000);
-//            UART_PRINT("before\n\r");
-            if ((buffer[12] == macAddressVal[0]
-                    && buffer[13] == macAddressVal[1]
-                    && buffer[14] == macAddressVal[2]
-                    && buffer[15] == macAddressVal[3]
-                    && buffer[16] == macAddressVal[4]
-                    && buffer[17] == macAddressVal[5]) && ((buffer[62] == 0xaa && buffer[63] == 0xaa && buffer[64] == 0xaa && buffer[65] == 0xaa)|| (buffer[62] == 0xbb && buffer[63] == 0xbb)))
-            {
-                UART_PRINT("Recieved data and RxTime is : %d \n\r ",k);
-                source_mac[0] = buffer[24];
-                source_mac[1] = buffer[25];
-                source_mac[2] = buffer[26];
-                source_mac[3] = buffer[27];
-                source_mac[4] = buffer[28];
-                source_mac[5] = buffer[29];
-
-
-                flag_ACK = 1;
-                sl_Close(qsocket_handle);
-                return 1;
-            }
-//            UART_PRINT("looping \n\r");
-        }
-    }
-    while (inf){    //receiving hello and requests
-        memset(&buffer[0], 0, sizeof(buffer));
-        recievedBytes = sl_Recv(qsocket_handle, buffer, BUFFER_SIZE, 0);
-        frameRadioHeader = (TransceiverRxOverHead_t *) buffer;
-        if ((buffer[12] == 0xFF && buffer[13] == 0xFF && buffer[14] == 0xFF && buffer[15] == 0xFF && buffer[16] == 0xFF && buffer[17] == 0xFF
-                && buffer[62] == 0xcc && buffer[63] == 0xcc && buffer[64] == 0xcc && buffer[65] == 0xcc) ||
-                (buffer[12] == macAddressVal[0] && buffer[13] == macAddressVal[1] && buffer[14] == macAddressVal[2] && buffer[15] == macAddressVal[3]
-                 && buffer[16] == macAddressVal[4] && buffer[17] == macAddressVal[5] && buffer[62] == 0xdd  && buffer[63] == 0xdd  && buffer[64] == 0xdd  && buffer[65] == 0xdd )){
-            UART_PRINT("Received a packet: %02x\n\r", buffer[62]);
-            source_mac[0] = buffer[24];
-            source_mac[1] = buffer[25];
-            source_mac[2] = buffer[26];
-            source_mac[3] = buffer[27];
-            source_mac[4] = buffer[28];
-            source_mac[5] = buffer[29];
-            break;
-        }
-    }
-    sl_Close(qsocket_handle);
-    return 0;
-}
 void printmessage(_u8 message[], int size)
 {
     int i = 0;
@@ -901,17 +749,13 @@ int receive_base(_u8 dest_mac[6], _u8 data[6], int timeout){
     for(j = 0; j < timeout; j++){
         memset(&msg, 0, sizeof(msg));
         sl_Recv(iSoc, msg, sizeof(msg), 0);
-//        UART_PRINT("message received is: ");
-        printmessage(msg, msg_size);
         int i = 0, mac_notequal = 0, data_notequal = 0;
         for(i = 0; i < 6; i++){
-//            UART_PRINT("mac %d %02X\n\r",i,msg[12 + i]);
             if(msg[12 + i] != dest_mac[i]){
                 mac_notequal = 1;
             }
         }
         for(i = 0; i < 4; i++){
-//            UART_PRINT("data %d %02X\n\r",i,msg[62 + i]);
             if(msg[62 + i] != data[i]){
                 data_notequal = 1;
             }
@@ -930,7 +774,7 @@ int receive_data(){
        dest_mac[i] = macAddressVal[i];
    }
     _u8 data[6] = {0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb};
-    return receive_base(dest_mac, data, 1000);
+    return receive_base(dest_mac, data, 100);
 }
 
 int receive_request(){
@@ -943,28 +787,30 @@ int receive_request(){
     return receive_base(dest_mac, data, 1000000);
 }
 
-int packtets_received_counter = 0;
+
 void sink_function(){
+    int packtets_received_counter = 0;
+    iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, flag_channel);
     while (1){
         UART_PRINT("Sending request\n\r");
         _u8 dest_mac[6] = {0xd4, 0x36, 0x39, 0x55, 0xac, 0xac};
-        iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, flag_channel);
         send_request(dest_mac);
         packtets_received_counter += receive_data();
-        sl_Close(iSoc);
-        UART_PRINT("In= %d\n\r",packtets_received_counter);
+        UART_PRINT("In= %d\n\r", packtets_received_counter);
+        MAP_UtilsDelay(40000000);
     }
+    sl_Close(iSoc);
 }
 
 void source_function(){
+    iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, flag_channel);
     while (1){
         UART_PRINT("Waiting for request\n\r\n\r");
         _u8 dest_mac[6] = {0xf4, 0xb8, 0x5e, 0x00, 0xfe, 0x27};
-        iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, flag_channel);
         receive_request();
         send_data(dest_mac);
-        sl_Close(iSoc);
     }
+    sl_Close(iSoc);
 }
 
 
@@ -977,14 +823,14 @@ int available_sources = 0;
 int source=0;
 int main()
 {
-    int trials=0;
-    int msec[4];
-    clock_t before;
-    clock_t difference;
-    int iFlag = 1;
-    int Source_resend_counter = 0;
-    long lRetVal = -1;
-    char cChar;
+//    int trials=0;
+//    int msec[4];
+//    clock_t before;
+//    clock_t difference;
+//    int iFlag = 1;
+//    int Source_resend_counter = 0;
+//    long lRetVal = -1;
+//    char cChar;
     unsigned char policyVal;
     BoardInit();    // Initialize Board configuration
     PinMuxConfig();    //Pin muxing
@@ -1002,8 +848,7 @@ int main()
     int i;
     unsigned char macAddressLen = SL_MAC_ADDR_LEN;
     sl_NetCfgGet(SL_MAC_ADDRESS_GET, NULL, &macAddressLen, (unsigned char *) macAddressVal);
-    // reset all network policies
-    lRetVal = sl_WlanPolicySet(SL_POLICY_CONNECTION,SL_CONNECTION_POLICY(0, 0, 0, 0, 0), &policyVal,1 /*PolicyValLen*/);
+    lRetVal = sl_WlanPolicySet(SL_POLICY_CONNECTION,SL_CONNECTION_POLICY(0, 0, 0, 0, 0), &policyVal,1 /*PolicyValLen*/);// reset all network policies
     UART_PRINT("MAC Address is : ");
     for (i = 0; i < macAddressLen; i++){
         UART_PRINT("%02X", (unsigned char) macAddressVal[i]);
