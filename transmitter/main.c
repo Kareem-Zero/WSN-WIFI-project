@@ -674,15 +674,22 @@ static int Tx_continuous(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
 //    UART_PRINT("lRetVal 1 is    ");
 //    UART_PRINT("%d \n\r", lRetVal);
     int number_of_backoffs = 3;
-    while (number_of_backoffs>=0 &&(lRetVal == 0 || lRetVal == SL_EAGAIN || lRetVal == 125|| lRetVal == 78|| lRetVal == 86|| lRetVal == 294 || lRetVal == 117 || lRetVal == 138 || lRetVal == 133|| lRetVal == 99|| lRetVal == 124|| lRetVal == 61|| lRetVal == 132)){
+    //while (number_of_backoffs>=0 &&(lRetVal == 0 || lRetVal == SL_EAGAIN || lRetVal == 125|| lRetVal == 78|| lRetVal == 86|| lRetVal == 294 || lRetVal == 117 || lRetVal == 138 || lRetVal == 133|| lRetVal == 99|| lRetVal == 124|| lRetVal == 61|| lRetVal == 132)){
+      //  number_of_backoffs--;
+    UART_PRINT("Alive before while\n\r");
+
+    while (number_of_backoffs>=0 && lRetVal >=0){
         number_of_backoffs--;
-//    while (lRetVal >=0){
         memset(&buffer[0], 0, sizeof(buffer));
         lRetVal = sl_Recv(iSoc, buffer, sizeof(buffer), 0);
+        UART_PRINT("Alive in while loop %d\n\r", 3-number_of_backoffs);
+
 //        UART_PRINT("lRetVal loop is    ");
 //        UART_PRINT("%d", lRetVal);
 //        random_backoff_delay();
     }
+    UART_PRINT("Alive before send\n\r");
+
 
 //    UART_PRINT("Transmitting data...\r\n");
     for (ulIndex = 0; ulIndex < iNumberOfPackets; ulIndex++){
@@ -690,16 +697,19 @@ static int Tx_continuous(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
                 iSoc, message, sizeof(message),
                 SL_RAW_RF_TX_PARAMS(iChannel, rate, iTxPowerLevel, PREAMBLE));
 //        interpackettiming(1000);
+        UART_PRINT("Alive after send\n\r");
+
         if (lRetVal < 0){
             sl_Close(iSoc);
             ASSERT_ON_ERROR(lRetVal);
         }
         //Sleep(dIntervalMiliSec);
-        MAP_UtilsDelay(4000000);
+        MAP_UtilsDelay(4000);
     }
 
     lRetVal = sl_Close(iSoc);
     ASSERT_ON_ERROR(lRetVal);
+    UART_PRINT("Alive before return\n\r");
 
 //    UART_PRINT("Transmission complete.\r\n");
     return SUCCESS;
@@ -838,7 +848,7 @@ void interpackettiming(int NumberOfMilliSeconds)
 //    UART_PRINT("Interpacket time gap . . .");
     for (j = 0; j < NumberOfMilliSeconds; j++)
     {
-        for (k = 0; k < 4000; k++)
+        for (k = 0; k < 400; k++)
         {
         }
 //        UART_PRINT("%d ", j + 1);
@@ -900,12 +910,13 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
 //                    UART_PRINT("DATA Recieved\n\r");
 //                }
                 flag_ACK = 1;
+                interpackettiming(1000000);
                 sl_Close(qsocket_handle);
                 return 1;
             }
         }
     }
-    while (inf){    //receiving hello
+    while (inf){    //receiving hello and requests
         memset(&buffer[0], 0, sizeof(buffer));
         recievedBytes = sl_Recv(qsocket_handle, buffer, BUFFER_SIZE, 0);
         frameRadioHeader = (TransceiverRxOverHead_t *) buffer;
@@ -1050,9 +1061,9 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
 //    sl_Close(qsocket_handle);
 //}
 //*****************************************************************************
-#define flag_function 1//1: SINK, 2: SOURCE
-#define flag_channel 5
-#define flag_rate 12
+#define flag_function 2//1: SINK, 2: SOURCE
+#define flag_channel 2
+#define flag_rate 5
 #define flag_packets 1
 #define flag_power 15
 #define flag_interpackettime 2000
@@ -1154,7 +1165,7 @@ int main()
             int j;
             packtets_sent_counter = 0;
             packtets_received_counter = 0;
-            for(j=0; j < 1000; j++){
+           // for(j=0; j < 1000; j++){
                 for(i=0;i<available_sources;i++){
                     source_mac[0] = Mac_array[0][i];
                     source_mac[1] = Mac_array[1][i];
@@ -1172,9 +1183,9 @@ int main()
 //                    UART_PRINT("\n\r");
                     lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, 0, 0, source_mac);
                     packtets_sent_counter++;
-                    interpackettiming(10);
+                    interpackettiming(1);
                     packtets_received_counter += TransceiverModeRx(flag_channel, source_mac, 3);
-                }
+              //  }
                 //interpacket timing = 2, 4, 8
                 UART_PRINT("Loop #%d out: %d in: %d\n\r\n\r", j, packtets_sent_counter, packtets_received_counter);
 //                interpackettiming(2);
@@ -1200,9 +1211,11 @@ int main()
                 UART_PRINT("Waiting for request.\n\r");
                 TransceiverModeRx(flag_channel, source_mac, 2);
                 UART_PRINT("received request, preparing data for transmission \n\r");
-//                interpackettiming((flag_interpackettime + 1));
+                //interpackettiming((flag_interpackettime + 1));
 //                random_backoff_delay();
+               do
                 lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, 0, 3, source_mac);
+                while(lRetVal!=0);
                 UART_PRINT("Sent data.\n\r");
             }
 
