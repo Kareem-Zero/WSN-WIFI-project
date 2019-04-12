@@ -29,7 +29,7 @@
 #define flag_rate 5
 #define flag_packets 1
 #define flag_power 5
-
+int iSoc;
 #define APPLICATION_NAME        (flag_function==1?"SINK MODE":"SOURCE MODE")
 
 // Application specific status/error codes
@@ -733,11 +733,7 @@ void send_base(_u8 dest_mac[6],_u8 data[6]){
         msg[i + 16] = macAddressVal[i];
         msg[i + 54] = data[i];
     }
-
-    int iSoc;
-    iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, flag_channel);
     sl_Send(iSoc, msg, sizeof(msg),SL_RAW_RF_TX_PARAMS(flag_channel,(SlRateIndex_e)flag_rate, flag_power, PREAMBLE));
-    sl_Close(iSoc);
 }
 
 void send_hello(){
@@ -898,8 +894,6 @@ void printmessage(_u8 message[], int size)
     UART_PRINT("\n\r");
 }
 int receive_base(_u8 dest_mac[6], _u8 data[6], int timeout){
-    int iSoc;
-    iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, flag_channel);
     int msg_size = 64;
     char msg[msg_size];
     int j = 0;
@@ -922,11 +916,9 @@ int receive_base(_u8 dest_mac[6], _u8 data[6], int timeout){
             }
         }
         if(mac_notequal == 0 && data_notequal == 0){
-            sl_Close(iSoc);
             return 1;
         }
     }
-    sl_Close(iSoc);
     return 0;
 }
 
@@ -947,7 +939,7 @@ int receive_request(){
        dest_mac[i] = macAddressVal[i];
    }
     _u8 data[6] = {0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd};
-    return receive_base(dest_mac, data, 1000);
+    return receive_base(dest_mac, data, 1000000);
 }
 
 int packtets_received_counter = 0;
@@ -955,23 +947,22 @@ void sink_function(){
     while (1){
         UART_PRINT("Sending request\n\r");
         _u8 dest_mac[6] = {0xd4, 0x36, 0x39, 0x55, 0xac, 0xac};
+        iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, flag_channel);
         send_request(dest_mac);
-//        MAP_UtilsDelay(40000000);//wait less than 10 second
-//        packtets_received_counter += receive_data();
-        packtets_received_counter += TransceiverModeRx(flag_channel, dest_mac, 2);
-
+        packtets_received_counter += receive_data();
+        sl_Close(iSoc);
         UART_PRINT("In= %d\n\r",packtets_received_counter);
-//        MAP_UtilsDelay(40000000);//wait less than 10 second
     }
 }
 
 void source_function(){
     while (1){
         UART_PRINT("Waiting for request\n\r\n\r");
-        _u8 dest_mac[6] = {0xd4, 0x36, 0x39, 0x55, 0xac, 0xac};
-        TransceiverModeRx(flag_channel, dest_mac, 2);
+        _u8 dest_mac[6] = {0xf4, 0xb8, 0x5e, 0x00, 0xfe, 0x27};
+        iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, flag_channel);
+        receive_request();
         send_data(dest_mac);
-      send_request(dest_mac);
+        sl_Close(iSoc);
     }
 }
 
