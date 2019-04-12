@@ -474,15 +474,11 @@ int receive_base(_u8 dest_mac[6], _u8 data[6], int timeout){
             if(msg[12 + i] != dest_mac[i]){
                 mac_notequal = 1;
             }
-        }
-        for(i = 0; i < 4; i++){
             if(msg[62 + i] != data[i]){
                 data_notequal = 1;
             }
         }
-        if(mac_notequal == 0 && data_notequal == 0){
-            return 1;
-        }
+        if(mac_notequal == 0 && data_notequal == 0) return 1;
     }
     return 0;
 }
@@ -504,32 +500,39 @@ int receive_request(){
        dest_mac[i] = macAddressVal[i];
    }
     _u8 data[6] = {0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd};
-    return receive_base(dest_mac, data, 1000000);
+    return receive_base(dest_mac, data, 1000);
 }
 
+int get_data(int nof_loops, int inter_packet_delay, _u8 dest_mac[][6], int devices_count){
+    int packtets_received_counter = 0;
+    while (nof_loops--){
+        int i = 0;
+        for(i = 0; i < devices_count; i++){
+            send_request(dest_mac[i]);
+            packtets_received_counter += receive_data();
+        }
+        MAP_UtilsDelay(inter_packet_delay);
+    }
+    return packtets_received_counter;
+}
 
 void sink_function(){
-    int packtets_received_counter = 0, packtets_sent_counter = 0, loop_counter = 0;
+    int nof_loops = 200, packtets_received_counter = 0;
     iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, flag_channel);
-    while (1){
-        loop_counter++;
-        UART_PRINT("Sending request\n\r");
-        _u8 dest_mac[6] = {0xd4, 0x36, 0x39, 0x55, 0xac, 0xac};
-        send_request(dest_mac);
-        packtets_sent_counter += 1;
-        packtets_received_counter += receive_data();
-        UART_PRINT("Loop #%d :%d/%d\n\r", loop_counter, packtets_received_counter, packtets_sent_counter);
-        MAP_UtilsDelay(40000000);
-    }
+    _u8 dest_mac[2][6] = {{0xd4, 0x36, 0x39, 0x55, 0xac, 0xac},
+                                  {0xf4, 0x5e, 0xab, 0xa1, 0xdc, 0x0f}};
+    packtets_received_counter = get_data(nof_loops, 0, dest_mac, 2);
+    UART_PRINT("Finished with success rate of : %d/%d\n\r",  packtets_received_counter, nof_loops * 2);
     sl_Close(iSoc);
 }
 
 void source_function(){
+    int packets_received_counter = 0;
     iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, flag_channel);
     while (1){
-        UART_PRINT("Waiting for request\n\r\n\r");
+        UART_PRINT("Received %d packets\n\r", packets_received_counter);
         _u8 dest_mac[6] = {0xf4, 0xb8, 0x5e, 0x00, 0xfe, 0x27};
-        receive_request();
+        packets_received_counter += receive_request();
         send_data(dest_mac);
     }
     sl_Close(iSoc);
