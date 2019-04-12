@@ -723,7 +723,7 @@ static int Tx_continuous(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
 }
 
 void send_base(_u8 dest_mac[6],_u8 data[6]){
-    printmessage(dest_mac, sizeof(dest_mac));
+    printmessage(dest_mac, 6);
     int msg_size = 64;
     char msg[msg_size];
     memset(&msg, 0, sizeof(msg));
@@ -813,7 +813,7 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
             RxTime = 0;
             break;
         case 1://ack and data
-            RxTime = 200;
+            RxTime = 2000;
             inf = 0;
             break;
         case 2://request
@@ -826,7 +826,7 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
             inf = 0;
             break;
     }
-    UART_PRINT("alive after initial\n\r");
+//    UART_PRINT("alive after initial\n\r");
     int j = 0;
     int k = 0;
     for (j = 0; j < RxTime; j++)
@@ -837,7 +837,7 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
             recievedBytes = sl_Recv(qsocket_handle, buffer, BUFFER_SIZE, 0);
             frameRadioHeader = (TransceiverRxOverHead_t *) buffer;
 //            interpackettiming(1000);
-            UART_PRINT("before\n\r");
+//            UART_PRINT("before\n\r");
             if ((buffer[12] == macAddressVal[0]
                     && buffer[13] == macAddressVal[1]
                     && buffer[14] == macAddressVal[2]
@@ -858,7 +858,7 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
                 sl_Close(qsocket_handle);
                 return 1;
             }
-            UART_PRINT("looping \n\r");
+//            UART_PRINT("looping \n\r");
         }
     }
     while (inf){    //receiving hello and requests
@@ -956,6 +956,7 @@ void sink_function(){
         UART_PRINT("Sending request\n\r");
         _u8 dest_mac[6] = {0xd4, 0x36, 0x39, 0x55, 0xac, 0xac};
         send_request(dest_mac);
+//        MAP_UtilsDelay(40000000);//wait less than 10 second
 //        packtets_received_counter += receive_data();
         packtets_received_counter += TransceiverModeRx(flag_channel, dest_mac, 1);
 
@@ -969,6 +970,18 @@ void source_function(){
         UART_PRINT("Waiting for request\n\r\n\r");
         _u8 dest_mac[6] = {0xd4, 0x36, 0x39, 0x55, 0xac, 0xac};
         TransceiverModeRx(flag_channel, dest_mac, 2);
+        send_data(dest_mac);
+        send_data(dest_mac);
+        send_data(dest_mac);
+        send_data(dest_mac);
+        send_data(dest_mac);
+        send_data(dest_mac);
+        MAP_UtilsDelay(400000);
+        send_data(dest_mac);
+        send_data(dest_mac);
+        send_data(dest_mac);
+        send_data(dest_mac);
+        send_data(dest_mac);
         send_data(dest_mac);
     }
 }
