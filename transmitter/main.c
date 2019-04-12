@@ -974,11 +974,7 @@ void source_function(){
         send_data(dest_mac);
         send_data(dest_mac);
         send_data(dest_mac);
-        send_data(dest_mac);
-        send_data(dest_mac);
         MAP_UtilsDelay(400000);
-        send_data(dest_mac);
-        send_data(dest_mac);
         send_data(dest_mac);
         send_data(dest_mac);
         send_data(dest_mac);
