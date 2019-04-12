@@ -30,7 +30,7 @@
 #define flag_packets 1
 #define flag_power 15
 int iSoc;
-#define APPLICATION_NAME        (flag_function==1?"SINK MODE":"SOURCE MODE")
+#define APPLICATION_NAME        (flag_function==1?"SINK NODE":"SOURCE NODE")
 
 // Application specific status/error codes
 typedef enum
@@ -417,15 +417,15 @@ void random_backoff_delay(void){
 //}
 
 static void DisplayBanner(char * AppName){
-    UART_PRINT("\n\n\n\r*************************************************\n\r\t\t %s       \n\r*************************************************", AppName);
+    UART_PRINT("\n\r*************************************************\n\r\t\t %s       \n\r*************************************************", AppName);
 }
 
-void printmessage(_u8 message[], int size){
+static void printmessage(_u8 message[], int size){
     int i = 0;
-    UART_PRINT("\n\r\n\r\n\r******************************************\n\r");
+    UART_PRINT("\n\r");
     for(i = 0; i < size; i++)
-        UART_PRINT("%02X\t", (unsigned char) message[i]);
-    UART_PRINT("\n\r******************************************\n\r\n\r");
+        UART_PRINT("%02X\t", message[i]);
+    UART_PRINT("\n\r*************************************************\n\r\n\r");
 }
 
 #define msg_size 100
@@ -433,7 +433,7 @@ char msg[msg_size];
 _u8 data[6];
 _u8 dest_mac[6];
 
-void send_base(_u8 dest_mac[6],_u8 data[6]){
+static void send_base(_u8 dest_mac[6],_u8 data[6]){
     memset(&msg, 0, sizeof(msg));
     int i = 0;
     for(i = 0; i < 6; i++){
@@ -444,7 +444,7 @@ void send_base(_u8 dest_mac[6],_u8 data[6]){
     sl_Send(iSoc, msg, msg_size,SL_RAW_RF_TX_PARAMS(flag_channel,(SlRateIndex_e)flag_rate, flag_power, PREAMBLE));
 }
 
-void send_hello(){
+static void send_hello(){
     int i = 0;
     for(i = 0; i < 6; i++){
         dest_mac[i] = 0xff;
@@ -453,19 +453,19 @@ void send_hello(){
     send_base(dest_mac, data);
 }
 
-void send_request(_u8 dest_mac[6]){
+static void send_request(_u8 dest_mac[6]){
     int i = 0;
     for(i = 0; i < 6; i++) data[i] = 0xdd;
     send_base(dest_mac, data);
 }
 
-void send_data(_u8 dest_mac[6]){
+static void send_data(_u8 dest_mac[6]){
     int i = 0;
     for(i = 0; i < 6; i++) data[i] = 0xbb;
     send_base(dest_mac, data);
 }
 
-int receive_base(_u8 dest_mac[6], _u8 data[6], int timeout){
+static int receive_base(_u8 dest_mac[6], _u8 data[6], int timeout){
     int j = 0, i = 0, mac_notequal = 0, data_notequal = 0;
     for(j = 0; j < timeout; j++){
         memset(&msg, 0, msg_size);
@@ -479,16 +479,16 @@ int receive_base(_u8 dest_mac[6], _u8 data[6], int timeout){
     return 0;
 }
 
-int receive_data(){
+static int receive_data(){
     int i;
     for(i = 0; i < 6; i++){
         dest_mac[i] = macAddressVal[i];
         data[i] = 0xbb;
     }
-    return receive_base(dest_mac, data, 100);
+    return receive_base(dest_mac, data, 3);
 }
 
-int receive_request(){
+static int receive_request(){
     int i;
     for(i = 0; i < 6; i++){
         dest_mac[i] = macAddressVal[i];
@@ -497,11 +497,11 @@ int receive_request(){
     return receive_base(dest_mac, data, 1000);
 }
 
-int get_data(int nof_loops, int inter_packet_delay, _u8 dest_mac[][6], int devices_count){
+static int get_data(int nof_loops, int inter_packet_delay, _u8 dest_mac[][6], int devices_count){
     int packtets_received_counter = 0, i = 0;
     while (nof_loops--){
         for(i = 0; i < devices_count; i++){
-            if(nof_loops % 10 == 0)UART_PRINT("1");
+            if(nof_loops % 50 == 0) Message(".");
             send_request(dest_mac[i]);
             packtets_received_counter += receive_data();
         }
@@ -510,17 +510,51 @@ int get_data(int nof_loops, int inter_packet_delay, _u8 dest_mac[][6], int devic
     return packtets_received_counter;
 }
 
-void sink_function(){
-    int nof_loops = 1000, packtets_received_counter = 0, inter_packet_delay = 10;
+#define nof_loops 1000
+#define nof_devices 3
+#define nof_tests 4
+#define nof_trials 5
+static void sink_function(){
+    int i = 0, j = 0, received_packets = 0;
+    int received_packets_counter[nof_tests] = {0, 0, 0, 0};
+    int inter_packet_delay[nof_tests] = {2000, 4000, 6000, 8000};
+    _u8 dest_mac[nof_devices][6] = {{0xd4, 0x36, 0x39, 0x55, 0xac, 0xac},
+                          {0xd4, 0x36, 0x39, 0x55, 0xac, 0x79},
+                          {0xf4, 0x5e, 0xab, 0xa1, 0xdc, 0x0f}};
+    UART_PRINT("Source nodes available: %d:\n\r", nof_devices);
+    UART_PRINT("Samples to take: %d\n\r", nof_loops);
+    UART_PRINT("Tests: %d\n\r", nof_tests);
+    UART_PRINT("Trials: %d\n\r", nof_trials);
     iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, flag_channel);
-    _u8 dest_mac[2][6] = {{0xd4, 0x36, 0x39, 0x55, 0xac, 0xac},
-                                  {0xf4, 0x5e, 0xab, 0xa1, 0xdc, 0x0f}};
-    packtets_received_counter = get_data(nof_loops, inter_packet_delay, dest_mac, 2);
-    UART_PRINT("\n\rFinished with success rate of : %d/%d\n\r",  packtets_received_counter, nof_loops * 2);
+    struct SlTimeval_t timeVal;
+    timeVal.tv_sec =  0;             // Seconds
+    timeVal.tv_usec = 2000;             // Microseconds. 10000 microseconds resolution
+    sl_SetSockOpt(iSoc, SL_SOL_SOCKET,SL_SO_RCVTIMEO, (_u8 *)&timeVal, sizeof(timeVal));    // Enable receive timeout
+    for(j = 0; j < nof_trials; j++){
+        UART_PRINT("\n\r\n\r>>>>>>>>>>>>>>>>>>>>>>>> Trial #%d:\n\r", j + 1);
+        for(i = 0, received_packets = 0; i < nof_tests; i++){
+            UART_PRINT("\n\rStarting test #%d:\n\r\t\t", i + 1);
+            UART_PRINT("Inter-sample delay: %dms\n\r\t\t", inter_packet_delay[i]);
+            Message("0%                                                      100%\n\r\t\t");
+            received_packets = get_data(nof_loops, inter_packet_delay[i], dest_mac, nof_devices);
+            received_packets_counter[i] += received_packets;
+            Message("\n\r\tTest report:\n\r\t\t");
+            UART_PRINT("Packets sent: %d\n\r\t\t", nof_loops * nof_devices);
+            UART_PRINT("Packets received: %d\n\r", received_packets);
+        }
+    }
+    Message("Final results:\n\r");
+    for(i = 0; i < nof_tests; i++){
+        UART_PRINT("\tTest #%d:\n\r\t\t", i + 1);
+        UART_PRINT("Packets sent: %d\n\r\t\t", nof_loops * nof_devices * nof_trials);
+        UART_PRINT("Packets received: %d\n\r", received_packets_counter[i]);
+    }
     sl_Close(iSoc);
+    UART_PRINT("\n\r\n\rDone.\n\rSink out.");
+    while(1);
 }
 
-void source_function(){
+static void source_function(){
     int packets_received_counter = 0;
     iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, flag_channel);
     _u8 dest_mac[6] = {0xf4, 0xb8, 0x5e, 0x00, 0xfe, 0x27};
@@ -532,7 +566,7 @@ void source_function(){
     sl_Close(iSoc);
 }
 
-void get_my_mac(){
+static void get_my_mac(){
     unsigned char macAddressLen = SL_MAC_ADDR_LEN;
     sl_NetCfgGet(SL_MAC_ADDRESS_GET, NULL, &macAddressLen, (unsigned char *) macAddressVal);
     printmessage(macAddressVal, 6);
@@ -548,6 +582,9 @@ int main(){
     sl_Start(0, 0, 0);
     unsigned char policyVal;
     sl_WlanPolicySet(SL_POLICY_CONNECTION,SL_CONNECTION_POLICY(0, 0, 0, 0, 0), &policyVal,1 /*PolicyValLen*/);// reset all network policies
+
+    Message("\33[2J\r");
+    UART_PRINT("%c[H", 27);
     DisplayBanner(APPLICATION_NAME);
     get_my_mac();
     srand((macAddressVal[0] * macAddressVal[1] * macAddressVal[2] * macAddressVal[3] * macAddressVal[4] * macAddressVal[5]) % RAND_MAX);
