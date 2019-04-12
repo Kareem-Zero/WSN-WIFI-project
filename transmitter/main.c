@@ -813,7 +813,7 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
             RxTime = 0;
             break;
         case 1://ack and data
-            RxTime = 2000;
+            RxTime = 20000;
             inf = 0;
             break;
         case 2://request
@@ -958,10 +958,10 @@ void sink_function(){
         send_request(dest_mac);
 //        MAP_UtilsDelay(40000000);//wait less than 10 second
 //        packtets_received_counter += receive_data();
-        packtets_received_counter += TransceiverModeRx(flag_channel, dest_mac, 1);
+        packtets_received_counter += TransceiverModeRx(flag_channel, dest_mac, 2);
 
         UART_PRINT("In= %d\n\r",packtets_received_counter);
-        MAP_UtilsDelay(40000000);//wait less than 10 second
+//        MAP_UtilsDelay(40000000);//wait less than 10 second
     }
 }
 
@@ -971,18 +971,7 @@ void source_function(){
         _u8 dest_mac[6] = {0xd4, 0x36, 0x39, 0x55, 0xac, 0xac};
         TransceiverModeRx(flag_channel, dest_mac, 2);
         send_data(dest_mac);
-        send_data(dest_mac);
-        send_data(dest_mac);
-        send_data(dest_mac);
-        send_data(dest_mac);
-        send_data(dest_mac);
-        MAP_UtilsDelay(400000);
-        send_data(dest_mac);
-        send_data(dest_mac);
-        send_data(dest_mac);
-        send_data(dest_mac);
-        send_data(dest_mac);
-        send_data(dest_mac);
+        send_request(dest_mac);
     }
 }
 
