@@ -804,9 +804,7 @@ void tabulate(_u8 mac_add[6])
 {
     int j, i;
     for (j = 0; j < 6; j++)
-    {
         Mac_array[j][i_mac_array] = mac_add[j];
-    }
     i_mac_array++;
 
     for (j = 0; j < 10; j++)
@@ -824,7 +822,6 @@ void tabulate(_u8 mac_add[6])
     }
     UART_PRINT("\n\r");
     // check global mac array for repeated mac addresses
-
 }
 //*****************************************************************************
 void interpackettiming(int NumberOfSeconds)
@@ -871,8 +868,10 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
     }
     int j = 0;
     int k = 0;
-    for (j = 0; j < RxTime; j++){
-        for (k = 0; k < 5; k++){
+    for (j = 0; j < RxTime; j++)
+    {
+        for (k = 0; k < 5; k++)
+        {
             memset(&buffer[0], 0, sizeof(buffer));
             recievedBytes = sl_Recv(qsocket_handle, buffer, BUFFER_SIZE, 0);
             frameRadioHeader = (TransceiverRxOverHead_t *) buffer;
@@ -890,10 +889,10 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
                 source_mac[4] = buffer[28];
                 source_mac[5] = buffer[29];
                 if (buffer[62] == 0xaa){//received ack
-                    UART_PRINT("ACK Recieved\n\r");
+                    UART_PRINT("ACK Received\n\r");
                 }
                 if (buffer[62] == 0xbb && buffer[63] == 0xbb){//received data
-                    UART_PRINT("DATA Recieved\n\r");
+                    UART_PRINT("DATA Received\n\r");
                 }
                 flag_ACK = 1;
                 sl_Close(qsocket_handle);
@@ -918,135 +917,12 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
             source_mac[5] = buffer[29];
             break;
         }
-//        if (buffer[12] == 0xd4 || buffer[12] == 0xf4
-//                || (buffer[12] == 0xff && buffer[62] == 0xcc))
-//        {
-//            UART_PRINT(" ===>>> Timestamp: %iuS, Signal Strength: %idB\n\r",
-//                       frameRadioHeader->timestamp, frameRadioHeader->rssi);
-//            UART_PRINT(
-//                    " ===>>> Destination MAC Address: %02x:%02x:%02x:%02x:%02x:%02x\n\r",
-//                    buffer[12], buffer[13], buffer[14], buffer[15], buffer[16],
-//                    buffer[17]);
-//            UART_PRINT(" ===>>> Bssid: %02x:%02x:%02x:%02x:%02x:%02x\n\r",
-//                       buffer[18], buffer[19], buffer[20], buffer[21],
-//                       buffer[22], buffer[23]);
-//            UART_PRINT(
-//                    " ===>>> Source MAC Address: %02x:%02x:%02x:%02x:%02x:%02x\n\r",
-//                    buffer[24], buffer[25], buffer[26], buffer[27], buffer[28],
-//                    buffer[29]);
-//            UART_PRINT(" ===>>> Source IP Address: %d.%d.%d.%d\n\r", buffer[54],
-//                       buffer[55], buffer[56], buffer[57]);
-//            UART_PRINT(" ===>>> Destination IP Address: %d.%d.%d.%d\n\r",
-//                       buffer[58], buffer[59], buffer[60], buffer[61]);
-//            UART_PRINT(" ===>>> Message: %02x.%02x.%02x.%02x\n\r\n", buffer[62],
-//                       buffer[63], buffer[64], buffer[65]);
-//        }
     }
     sl_Close(qsocket_handle);
     return 0;
 }
 //*****************************************************************************
-//void Receive(_u8 c1channel_number, _u8 source_mac[6], int mode_selector)
-//{   //  remove the extra condition in the if below ( MAC )
-//    TransceiverRxOverHead_t *frameRadioHeader = NULL;
-//    flag_ACK = 0;
-//    int RxTime, inf;
-//    int cchannel_number = c1channel_number;
-//
-//    _i32 qsocket_handle = -1;
-//    _i32 recievedBytes = 0;
-//    qsocket_handle = sl_Socket(SL_AF_RF, SL_SOCK_RAW, cchannel_number);
-//    switch (mode_selector)
-//    {
-//    case 0:
-//        inf = 1;
-//        RxTime = 0;
-//        break;
-//    case 1:
-//        RxTime = Seconds_60;
-//        inf = 0;
-//        break;
-//    case 2:
-//        RxTime = Minutes_10;
-//        inf = 0;
-//    };
-//    int i = 0;
-//    struct Packet buffer;
-//    while(1){
-//        memset(&buffer, 0, sizeof(Packet));
-//            recievedBytes = sl_Recv(qsocket_handle, (_u8 *) &buffer, sizeof(Packet), 0);
-//        frameRadioHeader = (TransceiverRxOverHead_t *) (_u8 *) &buffer;
-//        int j=0;
-//        int x=0;
-//        for(j=0; j< sizeof(Packet)-1; j++){
-//            UART_PRINT("%02x\t", ((_u8 *)&buffer)[j]);
-//            if (((_u8 *)&buffer)[j] == 0xd4 && ((_u8 *)&buffer)[j+1] == 0x36){
-//                UART_PRINT("\n\r\n\r\n\r\n\r");
-//                UART_PRINT("///////////////////////////");
-//                UART_PRINT("\n\r\n\r\n\r\n\r");
-//                x=1;
-//            }
-//        }
-//        UART_PRINT("\n\r\n\r");
-//        if (x){
-//            return;
-//        }
-//    }
-//    while (i < (4000000 * RxTime))
-//    {    //ppkts_to_receive--
-//        i++;
-//        memset(&buffer, 0, sizeof(Packet));
-//        recievedBytes = sl_Recv(qsocket_handle, (_u8 *) &buffer, sizeof(Packet), 0);
-//        frameRadioHeader = (TransceiverRxOverHead_t *) (_u8 *) &buffer;
-//        if (buffer.mac_dest[0] == macAddressVal[0]
-//                && buffer.mac_dest[1] == macAddressVal[1]
-//                && buffer.mac_dest[2] == macAddressVal[2]
-//                && buffer.mac_dest[3] == macAddressVal[3]
-//                && buffer.mac_dest[4] == macAddressVal[4]
-//                && buffer.mac_dest[5] == macAddressVal[5]
-//                && buffer.mac_ack == 1)
-//        {
-//            source_mac = buffer.mac_src;
-//            UART_PRINT("ACK Recieved");
-//            flag_ACK = 1;
-//            break;
-//        }
-//    }
-//    while (inf)    //ppkts_to_receive--
-//    {
-//        memset(&buffer, 0, sizeof(Packet));
-//        recievedBytes = sl_Recv(qsocket_handle, (_u8 *) &buffer, sizeof(Packet), 0);
-//        UART_PRINT("recievedBytes: %d",recievedBytes);
-//        frameRadioHeader = (TransceiverRxOverHead_t *) (_u8 *) &buffer;
-//        if ((buffer.mac_dest[0] == 0xFF && buffer.mac_dest[1] == 0xFF
-//                && buffer.mac_dest[2] == 0xFF && buffer.mac_dest[3] == 0xFF
-//                && buffer.mac_dest[4] == 0xFF && buffer.mac_dest[5] == 0xFF
-//                && buffer.ip_hello == 1)
-//                || (buffer.mac_dest[0] == macAddressVal[0]
-//                        && buffer.mac_dest[1] == macAddressVal[1]
-//                        && buffer.mac_dest[2] == macAddressVal[2]
-//                        && buffer.mac_dest[3] == macAddressVal[3]
-//                        && buffer.mac_dest[4] == macAddressVal[4]
-//                        && buffer.mac_dest[5] == macAddressVal[5]
-//                        && buffer.mac_ack == 1))
-//        {
-//            source_mac = buffer.mac_src;
-//            break;
-//        }
-////        if(buffer[12]==0xd4 || buffer[12]==0xf4 || (buffer[12]==0xff && buffer[62]==0xcc)){
-////            UART_PRINT(" ===>>> Timestamp: %iuS, Signal Strength: %idB\n\r", frameRadioHeader->timestamp, frameRadioHeader->rssi);
-////            UART_PRINT(" ===>>> Destination MAC Address: %02x:%02x:%02x:%02x:%02x:%02x\n\r", buffer[12], buffer[13], buffer[14], buffer[15], buffer[16], buffer[17]);
-////            UART_PRINT(" ===>>> Bssid: %02x:%02x:%02x:%02x:%02x:%02x\n\r", buffer[18], buffer[19], buffer[20], buffer[21], buffer[22], buffer[23]);
-////            UART_PRINT(" ===>>> Source MAC Address: %02x:%02x:%02x:%02x:%02x:%02x\n\r", buffer[24], buffer[25], buffer[26], buffer[27], buffer[28], buffer[29]);
-////            UART_PRINT(" ===>>> Source IP Address: %d.%d.%d.%d\n\r", buffer[54],  buffer[55], buffer[56],  buffer[57]);
-////            UART_PRINT(" ===>>> Destination IP Address: %d.%d.%d.%d\n\r", buffer[58],  buffer[59], buffer[60],  buffer[61]);
-////            UART_PRINT(" ===>>> Message: %02x.%02x.%02x.%02x\n\r\n", buffer[62],  buffer[63], buffer[64],  buffer[65]);
-////        }
-//    }
-//    sl_Close(qsocket_handle);
-//}
-//*****************************************************************************
-#define flag_function 1//1: SINK, 2: SOURCE
+#define flag_function 2//1: SINK, 2: SOURCE
 #define flag_channel 2
 #define flag_rate 5
 #define flag_packets 1
@@ -1056,7 +932,7 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
 int packtets_received_counter = 0;
 int packtets_sent_counter = 0;
 int available_sources = 0;
-int source=0;
+int source = 0;
 int main()
 {
     int iFlag = 1;
@@ -1114,8 +990,7 @@ int main()
     {
         switch (flag_function){
         case (1):    //SINK node;
-            UART_PRINT(
-                    "\n\r//////////////////////   SINK MODE \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \n\r\n\r");
+            UART_PRINT("\n\r//////////////////////   SINK MODE \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \n\r\n\r");
             UART_PRINT("Sending Hello\n\r");
             lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0,0, 1, source_mac);
             random_backoff_delay();
@@ -1170,12 +1045,7 @@ int main()
         case (2):    //SOURCE node
             UART_PRINT(
                     "\n\r//////////////////////   SOURCE MODE \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ \n\r\n\r");
-//            UART_PRINT("size of Packet = %d \n\r",sizeof(Packet));
-
             TransceiverModeRx(flag_channel, source_mac, 0);//waiting for hello
-//            UART_PRINT("Recieved Hello\n\r");
-
-
             interpackettiming((flag_interpackettime + 1));
             random_backoff_delay();
             lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0,0, 2, source_mac);
@@ -1185,28 +1055,9 @@ int main()
                 UART_PRINT("Waiting for request.\n\r");
                 TransceiverModeRx(flag_channel, source_mac, 2);
                 UART_PRINT("received request, preparing data for transmission \n\r");
-//                interpackettiming(1);
-//                random_backoff_delay();
                 lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power, 0, 0, 3, source_mac);
                 UART_PRINT("Sent data.\n\r");
             }
-
-//            UART_PRINT("Recieved Request\n\r");
-//            //waiting for request
-//
-//            UART_PRINT("Sent Data\n\r");
-//            TransceiverModeRx(flag_channel, source_mac, 1);
-//            UART_PRINT("Recieved Ack\n\r");
-//            //  change UART_PRINT(ACK) to proper location in RX function and Resend data
-//            Source_resend_counter = 0;
-//            while ((!flag_ACK) && (Source_resend_counter < 5))
-//            {
-//                lRetVal = Tx_continuous(flag_channel, flag_rate, 1, flag_power,
-//                                        0, flag_interpackettime, 2, source_mac);
-//                UART_PRINT("Sent Data\n\r");
-//                TransceiverModeRx(flag_channel, source_mac, 1);
-//                Source_resend_counter++;
-//            }
             break;
         }
     }
