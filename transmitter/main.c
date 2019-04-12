@@ -1062,7 +1062,7 @@ int TransceiverModeRx(_u8 c1channel_number, _u8 source_mac[6], int mode_selector
 //    sl_Close(qsocket_handle);
 //}
 //*****************************************************************************
-#define flag_function 1//1: SINK, 2: SOURCE
+#define flag_function 2//1: SINK, 2: SOURCE
 #define flag_channel 2
 #define flag_rate 5
 #define flag_packets 10
