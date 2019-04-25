@@ -20,7 +20,7 @@
 #include "pinmux.h"
 
 int flag_function = 0;//1: SINK, 0: SOURCE
-#define flag_channel 7
+#define flag_channel 2
 #define flag_rate 5
 #define flag_packets 1
 #define flag_power 15
@@ -410,6 +410,7 @@ static void printmessage(_u8 message[], int size){
 
 static void mac_send_base(Packet p, _u8 dest_mac[6]){
     int i = 0;
+    _u8* pktPtr=(_u8*)&p;
     for(i = 0; i < 6; i++){
         p.mac_dest[i] = dest_mac[i];
         p.mac_src[i] = macAddressVal[i];
@@ -454,12 +455,12 @@ static int app_receive_data(){
     return mac_receive_base(&p, 3);
 }
 
-static int app_receive_request(Packet p){
+static int app_receive_request(Packet  *p){
     int retval;
     do{
-        memset(&p, 0, sizeof(Packet));
-        retval =  mac_receive_base(&p, 1000);
-    }while(retval == 0 || p.app_req != 1);
+        memset(p, 0, sizeof(Packet));
+        retval =  mac_receive_base(p, 1000);
+    }while(retval == 0 || p->app_req != 1);
     return 1;
 }
 
@@ -527,7 +528,7 @@ static void source_function(){
     while (1){
         memset(&p, 0, sizeof(Packet));
         if(packets_received_counter % 10 == 1) UART_PRINT("Received %d packets\n\r", packets_received_counter);
-        packets_received_counter += app_receive_request(p); //receive_request()
+        packets_received_counter += app_receive_request(&p); //receive_request()
         app_send_temperature(p.mac_src);
     }
     sl_Close(iSoc);
