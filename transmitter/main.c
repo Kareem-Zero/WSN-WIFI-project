@@ -456,10 +456,23 @@ static void mac_send_base(Packet p, _u8 dest_mac[6]){
 
 static void app_send_request(_u8 dest_mac[6]){
     Packet p;
+    memset(&p, 0, sizeof(Packet));
     p.app_req = 1;
     mac_send_base(p, dest_mac);
 }
+static void app_send_temperature(_u8 dest_mac[6]){
+    Packet p;
+    memset(&p, 0, sizeof(Packet));
+    p.app_temp = 0x49;
+    mac_send_base(p, dest_mac);
+}
 
+static void app_function(Packet p){
+    if (p.app_req==1){
+        // send data
+        app_send_temperature(p.mac_src);
+    }
+}
 static int receive_base(_u8 dest_mac[6], _u8 data[6], int timeout){
     int j = 0, i = 0, mac_notequal = 0, data_notequal = 0;
     for(j = 0; j < timeout; j++){
@@ -474,21 +487,19 @@ static int receive_base(_u8 dest_mac[6], _u8 data[6], int timeout){
     return 0;
 }
 
-
-static int mac_receive_base(_u8 dest_mac[6], int timeout){
-    int j = 0, i = 0, mac_notequal = 0, data_notequal = 0;
-    Packet p1;
+char temp_msg[sizeof(Packet) + 8];
+_u8* pktPtr;
+static int mac_receive_base(Packet p1, int timeout){
+    int j = 0, i = 0, mac_notequal = 0;
+    pktPtr = (_u8*)&p1;
     for(j = 0; j < timeout; j++){
-        memset(&p1, 0, sizeof(Packet));
-        sl_Recv(iSoc, &p1, sizeof(Packet), 0);
-        for(i = 0; i<(sizeof(Packet)); i++){
-            UART_PRINT("%c", msg[i]);
-        }
-        for(i = 0, mac_notequal = 0 ; i < 6; i++){
-            if(msg[12 + i] != dest_mac[i]) mac_notequal = 1;
-//            if(msg[62 + i] != data[i]) data_notequal = 1;
-        }
-        if(mac_notequal == 0 && data_notequal == 0) return 1;
+        memset(&temp_msg, 0, sizeof(Packet) + 8);
+        sl_Recv(iSoc, temp_msg, sizeof(Packet) + 8, 0);
+        for(i = 0; i < sizeof(Packet); i++)
+            *(pktPtr + i) = temp_msg[i + 8];
+        for(i = 0, mac_notequal = 0 ; i < 6; i++)
+            if(p1.mac_dest[i] != macAddressVal[i]) mac_notequal = 1;
+        if(mac_notequal == 0 ) return 1;
     }
     return 0;
 }
@@ -503,12 +514,9 @@ static int receive_data(){
 }
 
 static int mac_receive_data(){
-    int i;
-    for(i = 8; i < 14; i++){
-        dest_mac[i] = macAddressVal[i-8];
-        data[i] = 0xbb;
-    }
-    return mac_receive_base(dest_mac, 3);
+    Packet p;
+    memset(&p, 0, sizeof(Packet));
+    return mac_receive_base(p, 3);
 }
 
 static int receive_request(){
@@ -520,14 +528,13 @@ static int receive_request(){
     return receive_base(dest_mac, data, 1000);
 }
 
-static int mac_receive_request(){
-    int i;
-    for(i = 8; i < 14; i++){
-        dest_mac[i] = macAddressVal[i-8];
-//        data[i] = 0xdd;
-    }
-
-    return mac_receive_base(dest_mac, 1000);
+static int mac_receive_request(Packet p){
+    int retval;
+    do{
+        memset(&p, 0, sizeof(Packet));
+        retval =  mac_receive_base(p, 1000);
+    }while(retval == 1 && p.app_req != 1);
+    return 1;
 }
 
 static int get_data(int nof_loops, int inter_packet_delay, _u8 dest_mac[][6], int devices_count){
@@ -536,7 +543,7 @@ static int get_data(int nof_loops, int inter_packet_delay, _u8 dest_mac[][6], in
         for(i = 0; i < devices_count; i++){
             if(nof_loops % 50 == 0) Message(".");
             app_send_request(dest_mac[i]);
-            packtets_received_counter += receive_data();
+            packtets_received_counter += mac_receive_data(); //receive_data()
         }
         delay(inter_packet_delay);
     }
@@ -589,12 +596,14 @@ static void sink_function(){
 
 static void source_function(){
     int packets_received_counter = 0;
+    Packet p;
     iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, flag_channel);
     _u8 dest_mac[6] = {0xf4, 0xb8, 0x5e, 0x00, 0xfe, 0x27};
     while (1){
-        if(packets_received_counter % 100 == 0 && packets_received_counter > 0) UART_PRINT("Received %d packets\n\r", packets_received_counter);
-        packets_received_counter += mac_receive_request();
-        send_data(dest_mac);
+        memset(&p, 0, sizeof(Packet));
+        if(packets_received_counter % 10 == 1) UART_PRINT("Received %d packets\n\r", packets_received_counter);
+        packets_received_counter += mac_receive_request(p); //receive_request()
+        app_send_temperature(p.mac_src);
     }
     sl_Close(iSoc);
 }
