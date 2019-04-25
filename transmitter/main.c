@@ -514,11 +514,11 @@ static int get_data(int nof_loops, int inter_packet_delay, _u8 dest_mac[][6], in
 #define nof_loops 1000
 #define nof_devices 3
 #define nof_tests 4
-#define nof_trials 5
+#define nof_trials 2
 static void sink_function(){
     int i = 0, j = 0, received_packets = 0;
     int received_packets_counter[nof_tests] = {0, 0, 0, 0};
-    int inter_packet_delay[nof_tests] = {2000, 4000, 6000, 8000};
+    int inter_packet_delay[nof_tests] = {1, 2, 3, 4};
     _u8 dest_mac[nof_devices][6] = {{0xd4, 0x36, 0x39, 0x55, 0xac, 0xac},
                           {0xd4, 0x36, 0x39, 0x55, 0xac, 0x79},
                           {0xf4, 0x5e, 0xab, 0xa1, 0xdc, 0x0f}};
@@ -587,12 +587,12 @@ int main(){
     BoardInit();    // Initialize Board configuration
     PinMuxConfig();    //Pin muxing
     InitTerm();    // Configuring UART
-//    InitializeAppVariables();
-//    ConfigureSimpleLinkToDefaultState();
-//    CLR_STATUS_BIT_ALL(g_ulStatus);
+    InitializeAppVariables();
+    ConfigureSimpleLinkToDefaultState();
+    CLR_STATUS_BIT_ALL(g_ulStatus);
     sl_Start(0, 0, 0);
-//    unsigned char policyVal;
-//    sl_WlanPolicySet(SL_POLICY_CONNECTION,SL_CONNECTION_POLICY(0, 0, 0, 0, 0), &policyVal,1 /*PolicyValLen*/);// reset all network policies
+    unsigned char policyVal;
+    sl_WlanPolicySet(SL_POLICY_CONNECTION,SL_CONNECTION_POLICY(0, 0, 0, 0, 0), &policyVal,1 /*PolicyValLen*/);// reset all network policies
 
     Message("\33[2J\r");
     UART_PRINT("%c[H", 27);
