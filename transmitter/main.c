@@ -20,7 +20,7 @@
 #include "pinmux.h"
 
 int flag_function = 0;//1: SINK, 0: SOURCE
-#define flag_channel 2
+#define flag_channel 7
 #define flag_rate 5
 #define flag_packets 1
 #define flag_power 15
@@ -408,50 +408,13 @@ static void printmessage(_u8 message[], int size){
     UART_PRINT("\n\r*************************************************\n\r\n\r");
 }
 
-#define msg_size 100
-char msg[msg_size];
-_u8 data[6];
-_u8 dest_mac[6];
-
-static void send_base(_u8 dest_mac[6],_u8 data[6]){
-    memset(&msg, 0, sizeof(msg));
-    int i = 0;
-    for(i = 0; i < 6; i++){
-        msg[i + 4] = dest_mac[i];
-        msg[i + 16] = macAddressVal[i];
-        msg[i + 54] = data[i];
-    }
-    sl_Send(iSoc, msg, msg_size,SL_RAW_RF_TX_PARAMS(flag_channel,(SlRateIndex_e)flag_rate, flag_power, 1));
-}
-
-static void send_hello(){
-    int i = 0;
-    for(i = 0; i < 6; i++){
-        dest_mac[i] = 0xff;
-        data[i] = 0xcc;
-    }
-    send_base(dest_mac, data);
-}
-
-static void send_request(_u8 dest_mac[6]){
-    int i = 0;
-    for(i = 0; i < 6; i++) data[i] = 0xdd;
-    send_base(dest_mac, data);
-}
-
-static void send_data(_u8 dest_mac[6]){
-    int i = 0;
-    for(i = 0; i < 6; i++) data[i] = 0xbb;
-    send_base(dest_mac, data);
-}
-
 static void mac_send_base(Packet p, _u8 dest_mac[6]){
     int i = 0;
     for(i = 0; i < 6; i++){
         p.mac_dest[i] = dest_mac[i];
         p.mac_src[i] = macAddressVal[i];
     }
-    sl_Send(iSoc, &p, sizeof(Packet),SL_RAW_RF_TX_PARAMS(flag_channel,(SlRateIndex_e)flag_rate, flag_power, 1));
+    sl_Send(iSoc, &p, sizeof(Packet)+8,SL_RAW_RF_TX_PARAMS(flag_channel,(SlRateIndex_e)flag_rate, flag_power, 1));
 }
 
 static void app_send_request(_u8 dest_mac[6]){
@@ -460,6 +423,7 @@ static void app_send_request(_u8 dest_mac[6]){
     p.app_req = 1;
     mac_send_base(p, dest_mac);
 }
+
 static void app_send_temperature(_u8 dest_mac[6]){
     Packet p;
     memset(&p, 0, sizeof(Packet));
@@ -467,73 +431,35 @@ static void app_send_temperature(_u8 dest_mac[6]){
     mac_send_base(p, dest_mac);
 }
 
-static void app_function(Packet p){
-    if (p.app_req==1){
-        // send data
-        app_send_temperature(p.mac_src);
-    }
-}
-static int receive_base(_u8 dest_mac[6], _u8 data[6], int timeout){
-    int j = 0, i = 0, mac_notequal = 0, data_notequal = 0;
-    for(j = 0; j < timeout; j++){
-        memset(&msg, 0, msg_size);
-        sl_Recv(iSoc, msg, msg_size, 0);
-        for(i = 0, mac_notequal = 0, data_notequal = 0; i < 6; i++){
-            if(msg[12 + i] != dest_mac[i]) mac_notequal = 1;
-            if(msg[62 + i] != data[i]) data_notequal = 1;
-        }
-        if(mac_notequal == 0 && data_notequal == 0) return 1;
-    }
-    return 0;
-}
-
 char temp_msg[sizeof(Packet) + 8];
 _u8* pktPtr;
-static int mac_receive_base(Packet p1, int timeout){
+static int mac_receive_base(Packet *p1, int timeout){
     int j = 0, i = 0, mac_notequal = 0;
-    pktPtr = (_u8*)&p1;
+    pktPtr = (_u8*)p1;
     for(j = 0; j < timeout; j++){
         memset(&temp_msg, 0, sizeof(Packet) + 8);
         sl_Recv(iSoc, temp_msg, sizeof(Packet) + 8, 0);
         for(i = 0; i < sizeof(Packet); i++)
             *(pktPtr + i) = temp_msg[i + 8];
         for(i = 0, mac_notequal = 0 ; i < 6; i++)
-            if(p1.mac_dest[i] != macAddressVal[i]) mac_notequal = 1;
+            if(p1->mac_dest[i] != macAddressVal[i]) mac_notequal = 1;
         if(mac_notequal == 0 ) return 1;
     }
     return 0;
 }
 
-static int receive_data(){
-    int i;
-    for(i = 0; i < 6; i++){
-        dest_mac[i] = macAddressVal[i];
-        data[i] = 0xbb;
-    }
-    return receive_base(dest_mac, data, 3);
-}
-
-static int mac_receive_data(){
+static int app_receive_data(){
     Packet p;
     memset(&p, 0, sizeof(Packet));
-    return mac_receive_base(p, 3);
+    return mac_receive_base(&p, 3);
 }
 
-static int receive_request(){
-    int i;
-    for(i = 0; i < 6; i++){
-        dest_mac[i] = macAddressVal[i];
-        data[i] = 0xdd;
-    }
-    return receive_base(dest_mac, data, 1000);
-}
-
-static int mac_receive_request(Packet p){
+static int app_receive_request(Packet p){
     int retval;
     do{
         memset(&p, 0, sizeof(Packet));
-        retval =  mac_receive_base(p, 1000);
-    }while(retval == 1 && p.app_req != 1);
+        retval =  mac_receive_base(&p, 1000);
+    }while(retval == 0 || p.app_req != 1);
     return 1;
 }
 
@@ -543,7 +469,7 @@ static int get_data(int nof_loops, int inter_packet_delay, _u8 dest_mac[][6], in
         for(i = 0; i < devices_count; i++){
             if(nof_loops % 50 == 0) Message(".");
             app_send_request(dest_mac[i]);
-            packtets_received_counter += mac_receive_data(); //receive_data()
+            packtets_received_counter += app_receive_data(); //receive_data()
         }
         delay(inter_packet_delay);
     }
@@ -598,11 +524,10 @@ static void source_function(){
     int packets_received_counter = 0;
     Packet p;
     iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, flag_channel);
-    _u8 dest_mac[6] = {0xf4, 0xb8, 0x5e, 0x00, 0xfe, 0x27};
     while (1){
         memset(&p, 0, sizeof(Packet));
         if(packets_received_counter % 10 == 1) UART_PRINT("Received %d packets\n\r", packets_received_counter);
-        packets_received_counter += mac_receive_request(p); //receive_request()
+        packets_received_counter += app_receive_request(p); //receive_request()
         app_send_temperature(p.mac_src);
     }
     sl_Close(iSoc);
@@ -613,7 +538,6 @@ static void get_my_mac(){
     sl_NetCfgGet(SL_MAC_ADDRESS_GET, NULL, &macAddressLen, (unsigned char *) macAddressVal);
     printmessage(macAddressVal, 6);
 }
-
 
 int ReadDeviceConfiguration(){//check P018 (GPIO28)
     unsigned int uiGPIOPort;
