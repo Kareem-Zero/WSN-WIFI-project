@@ -13,17 +13,11 @@
 #include "rom.h"
 #include "rom_map.h"
 #include "gpio_if.h"
-//Common interface includes
 #include "common.h"
 #ifndef NOTERM
 #include "uart_if.h"
 #endif
 #include "pinmux.h"
-
-#define APPLICATION_VERSION     "1.1.1"
-#define PREAMBLE            1        /* Preamble value 0- short, 1- long */
-#define CPU_CYCLES_1MSEC (80*1000)
-
 
 int flag_function = 0;//1: SINK, 0: SOURCE
 #define flag_channel 2
@@ -31,34 +25,21 @@ int flag_function = 0;//1: SINK, 0: SOURCE
 #define flag_packets 1
 #define flag_power 15
 int iSoc;
-#define APPLICATION_NAME        (flag_function==0?"SINK NODE":"SOURCE NODE")
+#define APPLICATION_NAME        (flag_function==0?"SINK NODE 2.0":"SOURCE NODE 2.0")
 
-// Application specific status/error codes
-typedef enum
-{
+typedef enum{
     // Choosing -0x7D0 to avoid overlap w/ host-driver's error codes
     TX_CONTINUOUS_FAILED = -0x7D0,
     RX_STATISTICS_FAILED = TX_CONTINUOUS_FAILED - 1,
     DEVICE_NOT_IN_STATION_MODE = RX_STATISTICS_FAILED - 1,
     STATUS_CODE_MAX = -0xBB8
 } e_AppStatusCodes;
-typedef struct
-{
-    int choice;
-    int channel;
-    int packets;
-    SlRateIndex_e rate;
-    int Txpower;
-    int Message;
-} UserIn;
+
 volatile unsigned long g_ulStatus = 0; //SimpleLink Status
 unsigned long g_ulGatewayIP = 0; //Network Gateway IP address
 unsigned char g_ucConnectionSSID[SSID_LEN_MAX + 1]; //Connection SSID
 unsigned char g_ucConnectionBSSID[BSSID_LEN_MAX]; //Connection BSSID
 unsigned char macAddressVal[SL_MAC_ADDR_LEN];
-int flag_ACK = 0;
-#define Seconds_60 5
-#define Minutes_10 600
 _u8 Mac_array[6][10];
 int i_mac_array = 0;
 #if defined(ccs)
@@ -68,13 +49,8 @@ extern void (* const g_pfnVectors[])(void);
 extern uVectorEntry __vector_table;
 #endif
 //****************************************************************************
-static int Tx_continuous(int iChannel, SlRateIndex_e rate, int iNumberOfPackets,
-                         int iTxPowerLevel, long dIntervalMiliSec,
-                         int NumberOfSeconds, int message_type,
-                         _u8 source_mac[6]);
 static void DisplayBanner(char * AppName);
 static void BoardInit(void);
-static void interpackettiming(int);
 static void tabulate(_u8 mac_add[6]);
 static void random_backoff_delay(void);
 static _u8 * Packet_to_Array(Packet);
@@ -442,7 +418,7 @@ static void send_base(_u8 dest_mac[6],_u8 data[6]){
         msg[i + 16] = macAddressVal[i];
         msg[i + 54] = data[i];
     }
-    sl_Send(iSoc, msg, msg_size,SL_RAW_RF_TX_PARAMS(flag_channel,(SlRateIndex_e)flag_rate, flag_power, PREAMBLE));
+    sl_Send(iSoc, msg, msg_size,SL_RAW_RF_TX_PARAMS(flag_channel,(SlRateIndex_e)flag_rate, flag_power, 1));
 }
 
 static void send_hello(){
