@@ -574,25 +574,11 @@ static void get_my_mac(){
 }
 
 
-#define SH_GPIO_3                       28       /* P58 - Device Mode */
-
-//****************************************************************************
-//
-//!    \brief Read Force AP GPIO and Configure Mode - 1(Source Mode)
-//!                                                  - 0 (Sink Mode)
-//!
-//! \return                        None
-//
-//****************************************************************************
-int ReadDeviceConfiguration(){
+int ReadDeviceConfiguration(){//check P018 (GPIO28)
     unsigned int uiGPIOPort;
     unsigned char pucGPIOPin;
-    unsigned char ucPinValue;
-
-    GPIO_IF_GetPortNPin(SH_GPIO_3,&uiGPIOPort,&pucGPIOPin);
-    ucPinValue = GPIO_IF_Get(SH_GPIO_3,uiGPIOPort,pucGPIOPin);
-
-    if(ucPinValue == 1)//Sink mode
+    GPIO_IF_GetPortNPin(28, &uiGPIOPort, &pucGPIOPin);
+    if(GPIO_IF_Get(28, uiGPIOPort, pucGPIOPin) == 1)//Sink mode
         return 0;
     return 1;//Source mode
 }
@@ -601,12 +587,12 @@ int main(){
     BoardInit();    // Initialize Board configuration
     PinMuxConfig();    //Pin muxing
     InitTerm();    // Configuring UART
-    InitializeAppVariables();
-    ConfigureSimpleLinkToDefaultState();
-    CLR_STATUS_BIT_ALL(g_ulStatus);
+//    InitializeAppVariables();
+//    ConfigureSimpleLinkToDefaultState();
+//    CLR_STATUS_BIT_ALL(g_ulStatus);
     sl_Start(0, 0, 0);
-    unsigned char policyVal;
-    sl_WlanPolicySet(SL_POLICY_CONNECTION,SL_CONNECTION_POLICY(0, 0, 0, 0, 0), &policyVal,1 /*PolicyValLen*/);// reset all network policies
+//    unsigned char policyVal;
+//    sl_WlanPolicySet(SL_POLICY_CONNECTION,SL_CONNECTION_POLICY(0, 0, 0, 0, 0), &policyVal,1 /*PolicyValLen*/);// reset all network policies
 
     Message("\33[2J\r");
     UART_PRINT("%c[H", 27);
