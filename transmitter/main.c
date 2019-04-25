@@ -477,13 +477,14 @@ static int receive_base(_u8 dest_mac[6], _u8 data[6], int timeout){
 
 static int mac_receive_base(_u8 dest_mac[6], int timeout){
     int j = 0, i = 0, mac_notequal = 0, data_notequal = 0;
+    Packet p1;
     for(j = 0; j < timeout; j++){
-        memset(&msg, 0, msg_size);
-        sl_Recv(iSoc, msg, msg_size, 0);
+        memset(&p1, 0, sizeof(Packet));
+        sl_Recv(iSoc, &p1, sizeof(Packet), 0);
         for(i = 0; i<(sizeof(Packet)); i++){
             UART_PRINT("%c", msg[i]);
         }
-        for(i = 0, mac_notequal = 0, data_notequal = 0; i < 6; i++){
+        for(i = 0, mac_notequal = 0 ; i < 6; i++){
             if(msg[12 + i] != dest_mac[i]) mac_notequal = 1;
 //            if(msg[62 + i] != data[i]) data_notequal = 1;
         }
@@ -505,7 +506,7 @@ static int mac_receive_data(){
     int i;
     for(i = 8; i < 14; i++){
         dest_mac[i] = macAddressVal[i-8];
-//        data[i] = 0xbb;
+        data[i] = 0xbb;
     }
     return mac_receive_base(dest_mac, 3);
 }
@@ -525,6 +526,7 @@ static int mac_receive_request(){
         dest_mac[i] = macAddressVal[i-8];
 //        data[i] = 0xdd;
     }
+
     return mac_receive_base(dest_mac, 1000);
 }
 
