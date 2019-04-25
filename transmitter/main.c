@@ -55,17 +55,6 @@ static void tabulate(_u8 mac_add[6]);
 static void random_backoff_delay(void);
 static _u8 * Packet_to_Array(Packet);
 //*****************************************************************************
-typedef struct Packet
-{
-    _u8 version;_u8 frame_control;
-    //  mac layer
-    _u8 mac_src[6];_u8 mac_dest[6];_u8 mac_ack;_u32 mac_packet_id;
-    //  Network layer
-    _u32 ip_src;_u32 ip_dest;_u32 ip_hop_count;_u8 ip_hello;_u32 ip_hello_id;
-    //  App layer
-    _u32 app_data;_u32 app_timestamp;
-} Packet;
-//*****************************************************************************
 void SimpleLinkWlanEventHandler(SlWlanEvent_t *pWlanEvent)
 {
     switch (pWlanEvent->Event)
@@ -348,10 +337,19 @@ static void BoardInit(void)
     PRCMCC3200MCUInit();
 }
 //*****************************************************************************
-typedef struct
-{
+typedef struct{
     _u8 rate;_u8 channel;_i8 rssi;_u8 padding;_u32 timestamp;
 } TransceiverRxOverHead_t;
+
+typedef struct{
+    _u8 version;_u8 frame_control;
+    //  mac layer
+    _u8 mac_src[6];_u8 mac_dest[6];_u8 mac_ack;_u8 mac_packet_id;
+    //  Network layer
+    _u8 ip_src[4];_u8 ip_dest[4];_u8 ip_hop_count;_u8 ip_hello;_u8 ip_hello_id;
+    //  App layer
+    _u8 app_req;_u8 app_temp;_u8 app_timestamp;
+} Packet;
 
 #define delay(millis) MAP_UtilsDelay((40000/3)*millis)
 
@@ -442,6 +440,21 @@ static void send_data(_u8 dest_mac[6]){
     send_base(dest_mac, data);
 }
 
+static void mac_send_base(Packet p, _u8 dest_mac[6]){
+    int i = 0;
+    for(i = 0; i < 6; i++){
+        p.mac_dest[i] = dest_mac[i];
+        p.mac_src[i] = macAddressVal[i];
+    }
+    sl_Send(iSoc, &p, sizeof(Packet),SL_RAW_RF_TX_PARAMS(flag_channel,(SlRateIndex_e)flag_rate, flag_power, 1));
+}
+
+static void app_send_request(_u8 dest_mac[6]){
+    Packet p;
+    p.app_req = 1;
+    mac_send_base(p, dest_mac);
+}
+
 static int receive_base(_u8 dest_mac[6], _u8 data[6], int timeout){
     int j = 0, i = 0, mac_notequal = 0, data_notequal = 0;
     for(j = 0; j < timeout; j++){
@@ -479,7 +492,7 @@ static int get_data(int nof_loops, int inter_packet_delay, _u8 dest_mac[][6], in
     while (nof_loops--){
         for(i = 0; i < devices_count; i++){
             if(nof_loops % 50 == 0) Message(".");
-            send_request(dest_mac[i]);
+            app_send_request(dest_mac[i]);
             packtets_received_counter += receive_data();
         }
         delay(inter_packet_delay);
@@ -575,6 +588,7 @@ int main(){
     flag_function = ReadDeviceConfiguration();
     DisplayBanner(APPLICATION_NAME);
     get_my_mac();
+    UART_PRINT("%d", sizeof(Packet));
     srand((macAddressVal[0] * macAddressVal[1] * macAddressVal[2] * macAddressVal[3] * macAddressVal[4] * macAddressVal[5]) % RAND_MAX);
     if (flag_function) source_function();
     else sink_function();
