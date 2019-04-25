@@ -457,7 +457,7 @@ static int app_receive_data(){
 static int app_receive_request(Packet *p){
     int retval;
     do{
-        memset(p, 0, sizeof(Packet));
+        memset(&p, 0, sizeof(Packet));
         retval =  mac_receive_base(p, 1000);
     }while(retval == 0 || p->app_req != 1);
     return 1;
@@ -525,7 +525,6 @@ static void source_function(){
     Packet *p;
     iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, flag_channel);
     while (1){
-        memset(p, 0, sizeof(Packet));
         if(packets_received_counter % 10 == 1) UART_PRINT("Received %d packets\n\r", packets_received_counter);
         packets_received_counter += app_receive_request(p); //receive_request()
         app_send_temperature(p->mac_src);
