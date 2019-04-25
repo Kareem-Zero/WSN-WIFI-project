@@ -12,6 +12,7 @@
 #include "prcm.h"
 #include "rom.h"
 #include "rom_map.h"
+#include "gpio_if.h"
 //Common interface includes
 #include "common.h"
 #ifndef NOTERM
@@ -24,13 +25,13 @@
 #define CPU_CYCLES_1MSEC (80*1000)
 
 
-#define flag_function 1//1: SINK, 2: SOURCE
+int flag_function = 0;//1: SINK, 0: SOURCE
 #define flag_channel 2
 #define flag_rate 5
 #define flag_packets 1
 #define flag_power 15
 int iSoc;
-#define APPLICATION_NAME        (flag_function==1?"SINK NODE":"SOURCE NODE")
+#define APPLICATION_NAME        (flag_function==0?"SINK NODE":"SOURCE NODE")
 
 // Application specific status/error codes
 typedef enum
@@ -559,7 +560,7 @@ static void source_function(){
     iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, flag_channel);
     _u8 dest_mac[6] = {0xf4, 0xb8, 0x5e, 0x00, 0xfe, 0x27};
     while (1){
-        if(packets_received_counter % 100 == 0) UART_PRINT("Received %d packets\n\r", packets_received_counter);
+        if(packets_received_counter % 100 == 0 && packets_received_counter > 0) UART_PRINT("Received %d packets\n\r", packets_received_counter);
         packets_received_counter += receive_request();
         send_data(dest_mac);
     }
@@ -570,6 +571,30 @@ static void get_my_mac(){
     unsigned char macAddressLen = SL_MAC_ADDR_LEN;
     sl_NetCfgGet(SL_MAC_ADDRESS_GET, NULL, &macAddressLen, (unsigned char *) macAddressVal);
     printmessage(macAddressVal, 6);
+}
+
+
+#define SH_GPIO_3                       28       /* P58 - Device Mode */
+
+//****************************************************************************
+//
+//!    \brief Read Force AP GPIO and Configure Mode - 1(Source Mode)
+//!                                                  - 0 (Sink Mode)
+//!
+//! \return                        None
+//
+//****************************************************************************
+int ReadDeviceConfiguration(){
+    unsigned int uiGPIOPort;
+    unsigned char pucGPIOPin;
+    unsigned char ucPinValue;
+
+    GPIO_IF_GetPortNPin(SH_GPIO_3,&uiGPIOPort,&pucGPIOPin);
+    ucPinValue = GPIO_IF_Get(SH_GPIO_3,uiGPIOPort,pucGPIOPin);
+
+    if(ucPinValue == 1)//Sink mode
+        return 0;
+    return 1;//Source mode
 }
 
 int main(){
@@ -585,9 +610,10 @@ int main(){
 
     Message("\33[2J\r");
     UART_PRINT("%c[H", 27);
+    flag_function = ReadDeviceConfiguration();
     DisplayBanner(APPLICATION_NAME);
     get_my_mac();
     srand((macAddressVal[0] * macAddressVal[1] * macAddressVal[2] * macAddressVal[3] * macAddressVal[4] * macAddressVal[5]) % RAND_MAX);
-    if (flag_function == 1) sink_function();
-    else source_function();
+    if (flag_function) source_function();
+    else sink_function();
 }

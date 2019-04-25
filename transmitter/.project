@@ -26,6 +26,11 @@
 	</natures>
 	<linkedResources>
 		<link>
+			<name>gpio_if.c</name>
+			<type>1</type>
+			<locationURI>CC3200_SDK_ROOT/example/common/gpio_if.c</locationURI>
+		</link>
+		<link>
 			<name>network_common.c</name>
 			<type>1</type>
 			<locationURI>PARENT-2-ORIGINAL_PROJECT_ROOT/common/network_common.c</locationURI>
