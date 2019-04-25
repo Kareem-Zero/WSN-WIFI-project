@@ -351,10 +351,10 @@ static void BoardInit(void)
     PRCMCC3200MCUInit();
 }
 //*****************************************************************************
-typedef struct
-{
+typedef struct{
     _u8 rate;_u8 channel;_i8 rssi;_u8 padding;_u32 timestamp;
 } TransceiverRxOverHead_t;
+
 
 #define delay(millis) MAP_UtilsDelay((40000/3)*millis)
 
@@ -445,6 +445,21 @@ static void send_data(_u8 dest_mac[6]){
     send_base(dest_mac, data);
 }
 
+static void mac_send_base(Packet p, _u8 dest_mac[6]){
+    int i = 0;
+    for(i = 0; i < 6; i++){
+        p.mac_dest[i] = dest_mac[i];
+        p.mac_src[i] = macAddressVal[i];
+    }
+    sl_Send(iSoc, &p, sizeof(Packet),SL_RAW_RF_TX_PARAMS(flag_channel,(SlRateIndex_e)flag_rate, flag_power, 1));
+}
+
+static void app_send_request(_u8 dest_mac[6]){
+    Packet p;
+    p.app_req = 1;
+    mac_send_base(p, dest_mac);
+}
+
 static int receive_base(_u8 dest_mac[6], _u8 data[6], int timeout){
     int j = 0, i = 0, mac_notequal = 0, data_notequal = 0;
     for(j = 0; j < timeout; j++){
@@ -486,6 +501,15 @@ static int receive_data(){
     return receive_base(dest_mac, data, 3);
 }
 
+static int mac_receive_data(){
+    int i;
+    for(i = 8; i < 14; i++){
+        dest_mac[i] = macAddressVal[i-8];
+//        data[i] = 0xbb;
+    }
+    return mac_receive_base(dest_mac, 3);
+}
+
 static int receive_request(){
     int i;
     for(i = 0; i < 6; i++){
@@ -497,8 +521,8 @@ static int receive_request(){
 
 static int mac_receive_request(){
     int i;
-    for(i = 9; i < 15; i++){
-        dest_mac[i] = macAddressVal[i-9];
+    for(i = 8; i < 14; i++){
+        dest_mac[i] = macAddressVal[i-8];
 //        data[i] = 0xdd;
     }
     return mac_receive_base(dest_mac, 1000);
@@ -509,7 +533,7 @@ static int get_data(int nof_loops, int inter_packet_delay, _u8 dest_mac[][6], in
     while (nof_loops--){
         for(i = 0; i < devices_count; i++){
             if(nof_loops % 50 == 0) Message(".");
-            send_request(dest_mac[i]);
+            app_send_request(dest_mac[i]);
             packtets_received_counter += receive_data();
         }
         delay(inter_packet_delay);
