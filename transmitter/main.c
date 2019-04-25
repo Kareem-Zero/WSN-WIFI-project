@@ -59,12 +59,15 @@ typedef struct Packet
 {
     _u8 version;_u8 frame_control;
     //  mac layer
-    _u8 mac_src[6];_u8 mac_dest[6];_u8 mac_ack;_u32 mac_packet_id;
+    _u8 mac_src[6];_u8 mac_dest[6];_u8 mac_ack;_u8 mac_packet_id;
     //  Network layer
-    _u32 ip_src;_u32 ip_dest;_u32 ip_hop_count;_u8 ip_hello;_u32 ip_hello_id;
+    _u8 ip_src[4];_u8 ip_dest[4];_u8 ip_hop_count;_u8 ip_hello;_u8 ip_hello_id;
     //  App layer
-    _u32 app_data;_u32 app_timestamp;
+    _u8 app_req; _u8 app_temp; _u8 app_timestamp;
 } Packet;
+
+
+
 //*****************************************************************************
 void SimpleLinkWlanEventHandler(SlWlanEvent_t *pWlanEvent)
 {
@@ -456,6 +459,24 @@ static int receive_base(_u8 dest_mac[6], _u8 data[6], int timeout){
     return 0;
 }
 
+
+static int mac_receive_base(_u8 dest_mac[6], int timeout){
+    int j = 0, i = 0, mac_notequal = 0, data_notequal = 0;
+    for(j = 0; j < timeout; j++){
+        memset(&msg, 0, msg_size);
+        sl_Recv(iSoc, msg, msg_size, 0);
+        for(i = 0; i<(sizeof(Packet)); i++){
+            UART_PRINT("%c", msg[i]);
+        }
+        for(i = 0, mac_notequal = 0, data_notequal = 0; i < 6; i++){
+            if(msg[12 + i] != dest_mac[i]) mac_notequal = 1;
+//            if(msg[62 + i] != data[i]) data_notequal = 1;
+        }
+        if(mac_notequal == 0 && data_notequal == 0) return 1;
+    }
+    return 0;
+}
+
 static int receive_data(){
     int i;
     for(i = 0; i < 6; i++){
@@ -472,6 +493,15 @@ static int receive_request(){
         data[i] = 0xdd;
     }
     return receive_base(dest_mac, data, 1000);
+}
+
+static int mac_receive_request(){
+    int i;
+    for(i = 9; i < 15; i++){
+        dest_mac[i] = macAddressVal[i-9];
+//        data[i] = 0xdd;
+    }
+    return mac_receive_base(dest_mac, 1000);
 }
 
 static int get_data(int nof_loops, int inter_packet_delay, _u8 dest_mac[][6], int devices_count){
@@ -537,7 +567,7 @@ static void source_function(){
     _u8 dest_mac[6] = {0xf4, 0xb8, 0x5e, 0x00, 0xfe, 0x27};
     while (1){
         if(packets_received_counter % 100 == 0 && packets_received_counter > 0) UART_PRINT("Received %d packets\n\r", packets_received_counter);
-        packets_received_counter += receive_request();
+        packets_received_counter += mac_receive_request();
         send_data(dest_mac);
     }
     sl_Close(iSoc);
@@ -575,6 +605,7 @@ int main(){
     flag_function = ReadDeviceConfiguration();
     DisplayBanner(APPLICATION_NAME);
     get_my_mac();
+    UART_PRINT("%d \n\r",sizeof(Packet));
     srand((macAddressVal[0] * macAddressVal[1] * macAddressVal[2] * macAddressVal[3] * macAddressVal[4] * macAddressVal[5]) % RAND_MAX);
     if (flag_function) source_function();
     else sink_function();
