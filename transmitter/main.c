@@ -622,6 +622,7 @@ static unsigned short itoa(char cNum, char *cString)
      UART_PRINT("\n\r\n\r");
 
  }
+
 int main(){
     BoardInit();    // Initialize Board configuration
     PinMuxConfig();    //Pin muxing
