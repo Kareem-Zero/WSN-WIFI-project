@@ -46,6 +46,8 @@ unsigned long g_ulGatewayIP = 0; //Network Gateway IP address
 unsigned char g_ucConnectionSSID[SSID_LEN_MAX + 1]; //Connection SSID
 unsigned char g_ucConnectionBSSID[BSSID_LEN_MAX]; //Connection BSSID
 unsigned char macAddressVal[SL_MAC_ADDR_LEN];
+_u8 ipAddressVal[4];
+int ip_count = 0;
 _u8 Mac_array[6][10];
 int i_mac_array = 0;
 #if defined(ccs)
@@ -67,13 +69,16 @@ typedef struct Packet
     //  mac layer
     _u8 mac_src[6];_u8 mac_dest[6];_u8 mac_ack;_u8 mac_packet_id;
     //  Network layer
-    _u8 ip_src[4];_u8 ip_dest[4];_u8 ip_hop_count;_u8 ip_hello;_u8 ip_hello_id;
+    _u8 ip_src[4];_u8 ip_dest[4];_u8 ip_hop_count;_u8 ip_query;_u8 ip_query_id; _u8 ip_reply;
     //  App layer
     _u8 app_req; _u8 app_temp; _u8 app_timestamp;
 } Packet;
 
-
-
+typedef struct Arp {
+  _u8 ip [4];
+  _u8 mac [6];
+}Arp;
+Arp table[10];
 //*****************************************************************************
 void SimpleLinkWlanEventHandler(SlWlanEvent_t *pWlanEvent)
 {
@@ -413,14 +418,26 @@ static void printmessage(_u8 message[], int size){
         UART_PRINT("%02X\t", message[i]);
     UART_PRINT("\n\r*************************************************\n\r\n\r");
 }
+int mac_listen(){
+    char temp_msg[sizeof(Packet)+8]={NULL};
+    int flag_empty=1;
+    int i;
+    sl_Recv(iSoc, temp_msg, sizeof(Packet) + 8, 0);
+            for(i = 0; i < sizeof(Packet); i++)
+                if(temp_msg[i] != '0')     flag_empty=0;
+    return flag_empty;
+}
 
 static void mac_send_base(Packet p, _u8 dest_mac[6]){
     int i = 0;
-    _u8* pktPtr=(_u8*)&p;
     for(i = 0; i < 6; i++){
         p.mac_dest[i] = dest_mac[i];
         p.mac_src[i] = macAddressVal[i];
     }
+    ///////////////////////////////// Random backoff if a node is using the channel
+    if(!mac_listen())
+        random_backoff_delay();
+    ////////////////////////////////
     sl_Send(iSoc, &p, sizeof(Packet)+8,SL_RAW_RF_TX_PARAMS(flag_channel,(SlRateIndex_e)flag_rate, flag_power, 1));
 }
 
@@ -436,6 +453,74 @@ static void app_send_temperature(_u8 dest_mac[6]){
     memset(&p, 0, sizeof(Packet));
     p.app_temp = 0x49;
     mac_send_base(p, dest_mac);
+}
+
+_u8 unique_query=0;       //(macAddressVal[5]*macAddressVal[6])%1000;
+_u8 sent_query;
+static void net_send_query(Packet p, _u8 dest_ip[4]){
+    int i;
+    for(i=0;i<4;i++){
+        p.ip_dest[i]=dest_ip[i];
+        p.ip_src[i]=ipAddressVal[i];
+    }
+    p.ip_query=1;
+    p.ip_query_id = unique_query;
+    sent_query = unique_query;      // to check if i sent the query i am recving
+    unique_query++;
+    _u8 dest_mac[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+    mac_send_base(p, dest_mac);
+}
+
+static void net_forward_pkt(Packet p){
+    int i,flag_found_ip,j;
+    _u8 dest_mac[]={0xff,0xff,0xff,0xff,0xff,0xff};
+    if(p.ip_reply==1){
+        mac_send_base(p, dest_mac);
+        return;
+    }
+    else{
+        for(i=0;i<ip_count;i++){
+            flag_found_ip=1;
+            for(j=0;j<4;j++){
+                if(table[i].ip[j]!=p.ip_dest[j])   flag_found_ip=0;
+            }
+            if(flag_found_ip){
+                for(j=0;j<6;j++)
+                    dest_mac[j]=table[i].mac[j];
+                mac_send_base(p, dest_mac);
+                return;
+            }
+        }
+    }
+}
+
+static void net_handle_pkts(Packet p){  //handles recved pkts
+    int flag_self_ip,flag_all_ffs=1;
+    _u8 dest_mac[]={0xff,0xff,0xff,0xff,0xff,0xff};
+    int i;
+    for(i=0;i<4;i++){
+        if(p.ip_dest[i]!=ipAddressVal[i])   flag_self_ip=0;
+        if(p.ip_dest[i]!=0xff)              flag_all_ffs=0;
+    }
+    if(flag_self_ip){
+        //send to app layer
+    }
+    if(flag_all_ffs){
+        //Send reply
+        p.ip_reply=1;
+        for(i=0;i<6;i++)
+            dest_mac[i]=p.mac_src[i];
+        mac_send_base(p,dest_mac);
+    }
+    net_forward_pkt(p);
+}
+
+
+static void app_send_query(){
+    Packet p;
+    memset(&p, 0, sizeof(Packet));
+    _u8 dest_ip[]={0xff,0xff,0xff,0xff};
+    net_send_query(p, dest_ip);
 }
 
 char temp_msg[sizeof(Packet) + 8];
@@ -545,6 +630,13 @@ static void get_my_mac(){
     printmessage(macAddressVal, 6);
 }
 
+static void get_my_ip(){
+    int i;
+    for(i=0;i<4;i++)
+        ipAddressVal[i]=macAddressVal[i+2];
+    printmessage(ipAddressVal, 4);
+}
+
 int ReadDeviceConfiguration(){//check P018 (GPIO28)
     unsigned int uiGPIOPort;
     unsigned char pucGPIOPin;
@@ -609,25 +701,113 @@ static unsigned short itoa(char cNum, char *cString)
      UART_PRINT("\n\rGetting Temprature...\n\r");
      unsigned char *ptr;
      float fCurrentTemp;
-     UART_PRINT("%d",TMP006DrvGetTemp(&fCurrentTemp));
-     UART_PRINT("\n\rGetting Temprature.......\n\r");
-     char cTemp = (char)fCurrentTemp;
-     short sTempLen = itoa(cTemp,(char*)ptr);
+     TMP006DrvGetTemp(&fCurrentTemp);
+     UART_PRINT("%f",fCurrentTemp);
+//     UART_PRINT("\n\rGetting Temprature.......\n\r");
+     int cCurrentTemp = (int)(((fCurrentTemp - 32)*5)/9);
+     char cTemp = (char)cCurrentTemp;
+//     short sTempLen = itoa(cTemp,(char*)ptr);
      int i=0;
 
      UART_PRINT("\n\r\n\rTemprature:%02x",cTemp);
-//     for (i=0;i<sTempLen;i++){
-//         UART_PRINT("%c",ptr[i]);
-//     }
+     for (i=0;i<2;i++){
+         UART_PRINT("%c",ptr[i]);
+     }
      UART_PRINT("\n\r\n\r");
-
  }
+
+
+static void arp_insert_ip(Packet *p){
+     int i = 0;
+     int j = 0;
+     int flag_new_ip = 1;
+     for(j=0; j<=ip_count;j++){
+         for(i = 0; i < 4; i++){
+             if(p->ip_src[i] != table[j].ip[i])   flag_new_ip=0;
+             }
+     }
+     if(!flag_new_ip){
+         for(i = 0; i<4 ; i++)
+             table[ip_count].ip[i] = p->ip_src[i];
+         for(i = 0; i<6 ;i++)
+             table[ip_count].mac[i] = p->mac_src[i];
+         ip_count++;
+     }
+     UART_PRINT("this is the ip in cell 0 in ARP table/t");
+        for(i=0;i<4;i++)
+            UART_PRINT("%02x",table[0].ip[i]);
+        UART_PRINT("\n\r\n\r");
+        UART_PRINT("this is the mac in cell 0 in ARP table/t");
+        for(i=0;i<4;i++)
+            UART_PRINT("%02x",table[0].mac[i]);
+        UART_PRINT("before first return");
+        UART_PRINT("\n\r\n\r");
+     return;
+}
+
+static void arp_get_dest_mac(Packet *p){
+    int i = 0;
+    int j = 0;
+    int flag_dest_ip;
+    for(i=0; i<ip_count;i++){
+        flag_dest_ip = 1;
+        if(p->ip_dest[i] != table[j].ip[i])  flag_dest_ip=0;
+        if(flag_dest_ip){
+        for(j=0;j<6;j++)
+            p->mac_dest[j]=table[i].mac[j];
+        return;
+        }
+    }
+}
+
+// unit test ARP
+
+static void unit_test_arp(){
+    Packet p;
+    int i;
+    memset(&p,0,sizeof(Packet));
+    for(i=0;i<4;i++){
+        p.ip_src[i]=0x55;
+        p.ip_dest[i]=0x99;
+        p.mac_src[i]=0x66;
+    }
+    // recved a packet
+    arp_insert_ip(&p);
+    UART_PRINT("this is the ip in cell 0 in ARP table\t");
+    for(i=0;i<4;i++)
+        UART_PRINT("%02x",table[0].ip[i]);
+    UART_PRINT("\n\r\n\r");
+    UART_PRINT("this is the mac in cell 0 in ARP table\t");
+    for(i=0;i<4;i++)
+        UART_PRINT("%02x",table[0].mac[i]);
+    UART_PRINT("\n\r\n\r");
+    //////////////////
+    memset(&p,0,sizeof(Packet));
+    for(i=0;i<4;i++){
+            p.ip_src[i]=0x99;
+            p.ip_dest[i]=0x55;
+        }
+    //sending a packet
+    arp_get_dest_mac(&p);
+    UART_PRINT("this is the mac injected, read from the packet\t");
+    for(i=0;i<4;i++)
+        UART_PRINT("%02x",p.mac_dest[i]);
+    UART_PRINT("\n\r\n\r");
+}
+
 int main(){
     BoardInit();    // Initialize Board configuration
     PinMuxConfig();    //Pin muxing
     PinConfigSet(PIN_58, PIN_STRENGTH_2MA|PIN_STRENGTH_4MA ,PIN_TYPE_STD_PD);
     InitTerm();    // Configuring UART
     InitializeAppVariables();
+    long lRetVal = -1;
+     lRetVal = TMP006DrvOpen();
+    if(lRetVal < 0)
+    {
+        ERR_PRINT(lRetVal);
+        LOOP_FOREVER();
+    }
     ConfigureSimpleLinkToDefaultState();
     CLR_STATUS_BIT_ALL(g_ulStatus);
     sl_Start(0, 0, 0);
@@ -639,16 +819,12 @@ int main(){
     flag_function = ReadDeviceConfiguration();
     DisplayBanner(APPLICATION_NAME);
     get_my_mac();
+    get_my_ip();
     UART_PRINT("%d \n\r",sizeof(Packet));
     srand((macAddressVal[0] * macAddressVal[1] * macAddressVal[2] * macAddressVal[3] * macAddressVal[4] * macAddressVal[5]) % RAND_MAX);
-    long lRetVal = I2C_IF_Open(I2C_MASTER_MODE_STD);
-    if(lRetVal < 0)
-    {
-        ERR_PRINT(lRetVal);
-        LOOP_FOREVER();
-    }
-//    delay(5000);
-     lRetVal = TMP006DrvOpen();
+    ipAddressVal[3]=rand()%(0x66);
+    lRetVal = -1;
+    lRetVal = I2C_IF_Open(I2C_MASTER_MODE_STD);
     if(lRetVal < 0)
     {
         ERR_PRINT(lRetVal);
@@ -656,6 +832,7 @@ int main(){
     }
 //    delay(5000);
 //    print_temp();
-    if (flag_function) source_function();
-    else sink_function();
+    unit_test_arp();
+//    if (flag_function) source_function();
+//    else sink_function();
 }
