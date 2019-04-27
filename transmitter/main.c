@@ -12,8 +12,14 @@
 #include "prcm.h"
 #include "rom.h"
 #include "rom_map.h"
+#include "pin.h"
+
+
 #include "gpio_if.h"
+#include "i2c_if.h"
 #include "common.h"
+#include "tmp006drv.h"
+
 #ifndef NOTERM
 #include "uart_if.h"
 #endif
@@ -548,9 +554,78 @@ int ReadDeviceConfiguration(){//check P018 (GPIO28)
     return 1;//Source mode
 }
 
+static const char pcDigits[] = "0123456789";
+//*****************************************************************************
+//
+//! itoa
+//!
+//!    @brief  Convert integer to ASCII in decimal base
+//!
+//!     @param  cNum is input integer number to convert
+//!     @param  cString is output string
+//!
+//!     @return number of ASCII parameters
+//!
+//!
+//
+//*****************************************************************************
+static unsigned short itoa(char cNum, char *cString)
+{
+    char* ptr;
+    char uTemp = cNum;
+    unsigned short length;
+
+    // value 0 is a special case
+    if (cNum == 0)
+    {
+        length = 1;
+        *cString = '0';
+
+        return length;
+    }
+
+    // Find out the length of the number, in decimal base
+    length = 0;
+    while (uTemp > 0)
+    {
+        uTemp /= 10;
+        length++;
+    }
+
+    // Do the actual formatting, right to left
+    uTemp = cNum;
+    ptr = cString + length;
+    while (uTemp > 0)
+    {
+        --ptr;
+        *ptr = pcDigits[uTemp % 10];
+        uTemp /= 10;
+    }
+
+    return length;
+}
+
+ void print_temp(){
+     UART_PRINT("\n\rGetting Temprature...\n\r");
+     unsigned char *ptr;
+     float fCurrentTemp;
+     UART_PRINT("%d",TMP006DrvGetTemp(&fCurrentTemp));
+     UART_PRINT("\n\rGetting Temprature.......\n\r");
+     char cTemp = (char)fCurrentTemp;
+     short sTempLen = itoa(cTemp,(char*)ptr);
+     int i=0;
+
+     UART_PRINT("\n\r\n\rTemprature:%02x",cTemp);
+//     for (i=0;i<sTempLen;i++){
+//         UART_PRINT("%c",ptr[i]);
+//     }
+     UART_PRINT("\n\r\n\r");
+
+ }
 int main(){
     BoardInit();    // Initialize Board configuration
     PinMuxConfig();    //Pin muxing
+    PinConfigSet(PIN_58, PIN_STRENGTH_2MA|PIN_STRENGTH_4MA ,PIN_TYPE_STD_PD);
     InitTerm();    // Configuring UART
     InitializeAppVariables();
     ConfigureSimpleLinkToDefaultState();
@@ -566,6 +641,21 @@ int main(){
     get_my_mac();
     UART_PRINT("%d \n\r",sizeof(Packet));
     srand((macAddressVal[0] * macAddressVal[1] * macAddressVal[2] * macAddressVal[3] * macAddressVal[4] * macAddressVal[5]) % RAND_MAX);
+    long lRetVal = I2C_IF_Open(I2C_MASTER_MODE_STD);
+    if(lRetVal < 0)
+    {
+        ERR_PRINT(lRetVal);
+        LOOP_FOREVER();
+    }
+//    delay(5000);
+     lRetVal = TMP006DrvOpen();
+    if(lRetVal < 0)
+    {
+        ERR_PRINT(lRetVal);
+        LOOP_FOREVER();
+    }
+//    delay(5000);
+//    print_temp();
     if (flag_function) source_function();
     else sink_function();
 }
