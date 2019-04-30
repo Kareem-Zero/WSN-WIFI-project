@@ -60,7 +60,6 @@ extern uVectorEntry __vector_table;
 static void DisplayBanner(char * AppName);
 static void BoardInit(void);
 static void tabulate(_u8 mac_add[6]);
-static void random_backoff_delay(void);
 static _u8 * Packet_to_Array(Packet);
 //*****************************************************************************
 typedef struct Packet
@@ -369,17 +368,7 @@ typedef struct{
 
 #define delay(x) MAP_UtilsDelay((40000/3)*x)
 
-void random_backoff_delay(void){
-    long long i;
-    int j;
-    int k = rand() % 500000;//random
-    UART_PRINT("This is the rand backoff \n\r");
-    UART_PRINT("%d \n\r", k);
-    for (i = 0; i < k; i++){ // rand number mod 2 micro seconds
-        for (j = 0; j < 8; j++){ // 2 microsecond delay
-        }
-    }
-}
+#define random_backoff_delay() delay((rand() % 5000)/1000)
 
 //void tabulate(_u8 mac_add[6]){
 //    int j, i;
@@ -418,6 +407,7 @@ static void printmessage(_u8 message[], int size){
         UART_PRINT("%02X\t", message[i]);
     UART_PRINT("\n\r*************************************************");
 }
+
 int mac_listen(){
     char temp_msg[sizeof(Packet)+8]={NULL};
     int flag_empty=1;
@@ -435,6 +425,12 @@ static void mac_send_base(Packet p, _u8 dest_mac[6]){
         p.mac_src[i] = macAddressVal[i];
     }
     ///////////////////////////////// Random backoff if a node is using the channel
+
+    struct SlTimeval_t timeVal;
+    timeVal.tv_sec =  0;             // Seconds
+    timeVal.tv_usec = 5;             // Microseconds. 10000 microseconds resolution
+    sl_SetSockOpt(iSoc, SL_SOL_SOCKET,SL_SO_RCVTIMEO, (_u8 *)&timeVal, sizeof(timeVal));
+
     if(!mac_listen())
         random_backoff_delay();
     ////////////////////////////////
@@ -583,7 +579,6 @@ static void sink_function(){
     UART_PRINT("Samples to take: %d\n\r", nof_loops);
     UART_PRINT("Tests: %d\n\r", nof_tests);
     UART_PRINT("Trials: %d\n\r", nof_trials);
-    iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, flag_channel);
     struct SlTimeval_t timeVal;
     timeVal.tv_sec =  0;             // Seconds
     timeVal.tv_usec = 2000;             // Microseconds. 10000 microseconds resolution
@@ -615,7 +610,6 @@ static void sink_function(){
 static void source_function(){
     int packets_received_counter = 0;
     Packet p;
-    iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, flag_channel);
     while (1){
         if(packets_received_counter % 10 == 1) UART_PRINT("Received %d packets\n\r", packets_received_counter);
         packets_received_counter += app_receive_request(&p); //receive_request()
@@ -646,57 +640,6 @@ int ReadDeviceConfiguration(){//check P018 (GPIO28)
     if(GPIO_IF_Get(28, uiGPIOPort, pucGPIOPin) == 1)//Sink mode
         return 0;
     return 1;//Source mode
-}
-
-static const char pcDigits[] = "0123456789";
-//*****************************************************************************
-//
-//! itoa
-//!
-//!    @brief  Convert integer to ASCII in decimal base
-//!
-//!     @param  cNum is input integer number to convert
-//!     @param  cString is output string
-//!
-//!     @return number of ASCII parameters
-//!
-//!
-//
-//*****************************************************************************
-static unsigned short itoa(char cNum, char *cString)
-{
-    char* ptr;
-    char uTemp = cNum;
-    unsigned short length;
-
-    // value 0 is a special case
-    if (cNum == 0)
-    {
-        length = 1;
-        *cString = '0';
-
-        return length;
-    }
-
-    // Find out the length of the number, in decimal base
-    length = 0;
-    while (uTemp > 0)
-    {
-        uTemp /= 10;
-        length++;
-    }
-
-    // Do the actual formatting, right to left
-    uTemp = cNum;
-    ptr = cString + length;
-    while (uTemp > 0)
-    {
-        --ptr;
-        *ptr = pcDigits[uTemp % 10];
-        uTemp /= 10;
-    }
-
-    return length;
 }
 
 void print_temp(){
@@ -784,6 +727,22 @@ static void unit_test_arp(){
     UART_PRINT("\n\r\n\r");
 }
 
+void unit_test_backoff(){
+    Message("\n\r////////Testing backoff//////////\n\r");
+    struct SlTimeval_t timeVal;
+    timeVal.tv_sec =  0;             // Seconds
+    timeVal.tv_usec = 1;             // Microseconds. 10000 microseconds resolution
+    sl_SetSockOpt(iSoc, SL_SOL_SOCKET,SL_SO_RCVTIMEO, (_u8 *)&timeVal, sizeof(timeVal));
+    int res = 0, i = 0;
+    for(i = 0; i < 10; i++){
+        res = mac_listen();
+        UART_PRINT("\n\r%d",res);
+//        if(!res){
+//            random_backoff_delay();
+//        }
+    }
+    Message("\n\r\n\rdone test.");
+}
 int main(){
     BoardInit();    // Initialize Board configuration
     PinMuxConfig();    //Pin muxing
@@ -807,7 +766,8 @@ int main(){
     get_my_ip();
     print_temp();
 
-//    unit_test_arp();
+    iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, flag_channel);
+    unit_test_backoff();
 //    if (flag_function) source_function();
 //    else sink_function();
 }
