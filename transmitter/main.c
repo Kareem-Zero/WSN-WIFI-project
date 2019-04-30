@@ -425,12 +425,6 @@ static void mac_send_base(Packet p, _u8 dest_mac[6]){
         p.mac_src[i] = macAddressVal[i];
     }
     ///////////////////////////////// Random backoff if a node is using the channel
-
-    struct SlTimeval_t timeVal;
-    timeVal.tv_sec =  0;             // Seconds
-    timeVal.tv_usec = 5;             // Microseconds. 10000 microseconds resolution
-    sl_SetSockOpt(iSoc, SL_SOL_SOCKET,SL_SO_RCVTIMEO, (_u8 *)&timeVal, sizeof(timeVal));
-
     if(!mac_listen())
         random_backoff_delay();
     ////////////////////////////////
