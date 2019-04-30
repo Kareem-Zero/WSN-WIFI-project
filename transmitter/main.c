@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+#include <math.h>
 #include "simplelink.h"
 #include "hw_types.h"
 #include "hw_ints.h"
@@ -13,11 +14,10 @@
 #include "rom.h"
 #include "rom_map.h"
 #include "pin.h"
-
+#include "common.h"
 
 #include "gpio_if.h"
 #include "i2c_if.h"
-#include "common.h"
 #include "tmp006drv.h"
 
 #ifndef NOTERM
@@ -367,7 +367,7 @@ typedef struct{
 } TransceiverRxOverHead_t;
 
 
-#define delay(millis) MAP_UtilsDelay((40000/3)*millis)
+#define delay(x) MAP_UtilsDelay((40000/3)*x)
 
 void random_backoff_delay(void){
     long long i;
@@ -416,7 +416,7 @@ static void printmessage(_u8 message[], int size){
     UART_PRINT("\n\r");
     for(i = 0; i < size; i++)
         UART_PRINT("%02X\t", message[i]);
-    UART_PRINT("\n\r*************************************************\n\r\n\r");
+    UART_PRINT("\n\r*************************************************");
 }
 int mac_listen(){
     char temp_msg[sizeof(Packet)+8]={NULL};
@@ -575,7 +575,7 @@ static int get_data(int nof_loops, int inter_packet_delay, _u8 dest_mac[][6], in
 static void sink_function(){
     int i = 0, j = 0, received_packets = 0;
     int received_packets_counter[nof_tests] = {0, 0, 0, 0};
-    int inter_packet_delay[nof_tests] = {1, 2, 3, 4};
+    int inter_packet_delay[nof_tests] = {1000, 2, 3, 4};
     _u8 dest_mac[nof_devices][6] = {{0xd4, 0x36, 0x39, 0x55, 0xac, 0xac},
                           {0xd4, 0x36, 0x39, 0x55, 0xac, 0x79},
                           {0xf4, 0x5e, 0xab, 0xa1, 0xdc, 0x0f}};
@@ -634,6 +634,8 @@ static void get_my_ip(){
     int i;
     for(i=0;i<4;i++)
         ipAddressVal[i]=macAddressVal[i+2];
+    ipAddressVal[0]=rand()%(0x66);
+    ipAddressVal[1]=rand()%(0x66);
     printmessage(ipAddressVal, 4);
 }
 
@@ -697,24 +699,11 @@ static unsigned short itoa(char cNum, char *cString)
     return length;
 }
 
- void print_temp(){
-     UART_PRINT("\n\rGetting Temprature...\n\r");
-     unsigned char *ptr;
-     float fCurrentTemp;
-     TMP006DrvGetTemp(&fCurrentTemp);
-     UART_PRINT("%f",fCurrentTemp);
-//     UART_PRINT("\n\rGetting Temprature.......\n\r");
-     int cCurrentTemp = (int)(((fCurrentTemp - 32)*5)/9);
-     char cTemp = (char)cCurrentTemp;
-//     short sTempLen = itoa(cTemp,(char*)ptr);
-     int i=0;
-
-     UART_PRINT("\n\r\n\rTemprature:%02x",cTemp);
-     for (i=0;i<2;i++){
-         UART_PRINT("%c",ptr[i]);
-     }
-     UART_PRINT("\n\r\n\r");
- }
+void print_temp(){
+    float fCurrentTemp;
+    TMP006DrvGetTemp(&fCurrentTemp);
+    UART_PRINT("\n\rCurrent Temprature: %.1f Celsius",fCurrentTemp);
+}
 
 
 static void arp_insert_ip(Packet *p){
@@ -801,18 +790,14 @@ int main(){
     PinConfigSet(PIN_58, PIN_STRENGTH_2MA|PIN_STRENGTH_4MA ,PIN_TYPE_STD_PD);
     InitTerm();    // Configuring UART
     InitializeAppVariables();
-    long lRetVal = -1;
-     lRetVal = TMP006DrvOpen();
-    if(lRetVal < 0)
-    {
-        ERR_PRINT(lRetVal);
-        LOOP_FOREVER();
-    }
+    I2C_IF_Open(I2C_MASTER_MODE_STD);
+    TMP006DrvOpen();
     ConfigureSimpleLinkToDefaultState();
     CLR_STATUS_BIT_ALL(g_ulStatus);
     sl_Start(0, 0, 0);
     unsigned char policyVal;
     sl_WlanPolicySet(SL_POLICY_CONNECTION,SL_CONNECTION_POLICY(0, 0, 0, 0, 0), &policyVal,1 /*PolicyValLen*/);// reset all network policies
+    srand((macAddressVal[0] * macAddressVal[1] * macAddressVal[2] * macAddressVal[3] * macAddressVal[4] * macAddressVal[5]) % RAND_MAX);
 
     Message("\33[2J\r");
     UART_PRINT("%c[H", 27);
@@ -820,19 +805,9 @@ int main(){
     DisplayBanner(APPLICATION_NAME);
     get_my_mac();
     get_my_ip();
-    UART_PRINT("%d \n\r",sizeof(Packet));
-    srand((macAddressVal[0] * macAddressVal[1] * macAddressVal[2] * macAddressVal[3] * macAddressVal[4] * macAddressVal[5]) % RAND_MAX);
-    ipAddressVal[3]=rand()%(0x66);
-    lRetVal = -1;
-    lRetVal = I2C_IF_Open(I2C_MASTER_MODE_STD);
-    if(lRetVal < 0)
-    {
-        ERR_PRINT(lRetVal);
-        LOOP_FOREVER();
-    }
-//    delay(5000);
-//    print_temp();
-    unit_test_arp();
+    print_temp();
+
+//    unit_test_arp();
 //    if (flag_function) source_function();
 //    else sink_function();
 }

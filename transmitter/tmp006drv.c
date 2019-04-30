@@ -45,6 +45,7 @@
 #include "tmp006drv.h"
 #include "i2c_if.h"
 #include "uart_if.h"
+#include "common.h"
 
 //****************************************************************************
 //                      GLOBAL VARIABLES                                   
@@ -185,8 +186,8 @@ double ComputeTemperature(double dVobject, double dTAmbient)
     return tObj;
 }
 
-//****************************************************************************
 //
+//****************************************************************************
 //! Get the temperature value
 //!
 //! \param pfCurrTemp is the pointer to the temperature value store
@@ -218,11 +219,6 @@ TMP006DrvGetTemp(float *pfCurrTemp)
     dTAmbient = ((short)usTAmbientRaw) / 128;
 
     *pfCurrTemp = ComputeTemperature(dVObject, dTAmbient);
-    
-    //
-    // Convert to Farenheit
-    //
-    *pfCurrTemp = ((*pfCurrTemp * 9) / 5) + 32;
 
     return SUCCESS;
 }
