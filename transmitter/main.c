@@ -423,9 +423,10 @@ static void arp_insert_ip(Packet *p){
 }
 
 static void arp_get_dest_mac(Packet *p){
-    int i = 0, j = 0, flag_dest_ip;
-    for(i = 0, flag_dest_ip = 1; i<ip_count;i++){
-        if(p->ip_dest[i] != table[j].ip[i])  flag_dest_ip=0;
+    int i = 0, j = 0, flag_dest_ip = 1;
+    for(i = 0; i < ip_count; i++, flag_dest_ip = 1){
+        for(j = 0; j < 4; j++)
+            if(p->ip_dest[j] != table[i].ip[j])  flag_dest_ip=0;
         if(flag_dest_ip){
             for(j=0;j<6;j++)
                 p->mac_dest[j]=table[i].mac[j];
@@ -448,6 +449,7 @@ static void mac_send_base(Packet *p){
         p->mac_src[i] = macAddressVal[i];
 //    if(!mac_listen())
 //        random_backoff_delay();
+    printmessage(p, sizeof(Packet));
     sl_Send(iSoc, p, sizeof(Packet)+8,SL_RAW_RF_TX_PARAMS(flag_channel,(SlRateIndex_e)flag_rate, flag_power, 1));
 }
 
@@ -634,7 +636,7 @@ static int get_data(int nof_loops, int inter_packet_delay){
     UART_PRINT("Source nodes available: %d:\n\r", devices_count);
     while (nof_loops--){
         for(i = 0; i < devices_count; i++){
-            if(nof_loops % 50 == 0) Message(".");
+//            if(nof_loops % 50 == 0) Message(".");
             app_send_request(table[i].ip);
 //            packtets_received_counter += app_receive_data(); //receive_data()
         }
@@ -643,7 +645,7 @@ static int get_data(int nof_loops, int inter_packet_delay){
     return packtets_received_counter;
 }
 
-#define nof_loops 1000
+#define nof_loops 10
 #define nof_tests 1
 #define nof_trials 50
 static void sink_function(){
