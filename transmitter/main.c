@@ -427,34 +427,32 @@ static void arp_get_dest_mac(Packet *p){
     }
 }
 
-static void mac_send_base(Packet p, _u8 dest_mac[6]){
+static void mac_send_base(Packet *p, _u8 dest_mac[6]){
     int i = 0;
     for(i = 0; i < 6; i++){
-        p.mac_dest[i] = dest_mac[i];
-        p.mac_src[i] = macAddressVal[i];
+        p->mac_dest[i] = dest_mac[i];
+        p->mac_src[i] = macAddressVal[i];
     }
-    ///////////////////////////////// Random backoff if a node is using the channel
 //    if(!mac_listen())
 //        random_backoff_delay();
-    ////////////////////////////////
-    sl_Send(iSoc, &p, sizeof(Packet)+8,SL_RAW_RF_TX_PARAMS(flag_channel,(SlRateIndex_e)flag_rate, flag_power, 1));
+    sl_Send(iSoc, p, sizeof(Packet)+8,SL_RAW_RF_TX_PARAMS(flag_channel,(SlRateIndex_e)flag_rate, flag_power, 1));
 }
 
-static void app_send_request(_u8 dest_mac[6]){
-    Packet p;
-    memset(&p, 0, sizeof(Packet));
-    p.app_req = 1;
-    mac_send_base(p, dest_mac);
-}
+//static void app_send_request(_u8 dest_mac[6]){
+//    Packet p;
+//    memset(&p, 0, sizeof(Packet));
+//    p.app_req = 1;
+//    mac_send_base(p, dest_mac);
+//}
+//
+//static void app_send_temperature(_u8 dest_mac[6]){
+//    Packet p;
+//    memset(&p, 0, sizeof(Packet));
+//    p.app_temp = 0x49;
+//    mac_send_base(p, dest_mac);
+//}
 
-static void app_send_temperature(_u8 dest_mac[6]){
-    Packet p;
-    memset(&p, 0, sizeof(Packet));
-    p.app_temp = 0x49;
-    mac_send_base(p, dest_mac);
-}
-
-_u8 unique_query=0;       //(macAddressVal[5]*macAddressVal[6])%1000;
+_u8 unique_query=7;       //(macAddressVal[5]*macAddressVal[6])%1000;
 _u8 sent_query;
 static void net_send_query(Packet p, _u8 dest_ip[4]){
     int i;
@@ -464,57 +462,61 @@ static void net_send_query(Packet p, _u8 dest_ip[4]){
     }
     p.ip_query=1;
     p.ip_query_id = unique_query;
-    sent_query = unique_query;      // to check if i sent the query i am recving
+//    sent_query = unique_query;      // to check if i sent the query i am recving
     unique_query++;
     _u8 dest_mac[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-    mac_send_base(p, dest_mac);
+    mac_send_base(&p, dest_mac);
 }
 
-static void net_forward_pkt(Packet p){
-    int i,flag_found_ip,j;
-    _u8 dest_mac[]={0xff,0xff,0xff,0xff,0xff,0xff};
-    if(p.ip_reply==1){
-        mac_send_base(p, dest_mac);
-        return;
-    }
-    else{
-        for(i=0;i<ip_count;i++){
-            flag_found_ip=1;
-            for(j=0;j<4;j++){
-                if(table[i].ip[j]!=p.ip_dest[j])   flag_found_ip=0;
-            }
-            if(flag_found_ip){
-                for(j=0;j<6;j++)
-                    dest_mac[j]=table[i].mac[j];
-                mac_send_base(p, dest_mac);
-                return;
-            }
-        }
-    }
-}
+//static void net_forward_pkt(Packet p){
+//    int i,flag_found_ip,j;
+//    _u8 dest_mac[]={0xff,0xff,0xff,0xff,0xff,0xff};
+//    if(p.ip_reply==1){
+//        mac_send_base(p, dest_mac);
+//        return;
+//    }else{
+//        for(i=0;i<ip_count;i++){
+//            flag_found_ip=1;
+//            for(j=0;j<4;j++){
+//                if(table[i].ip[j]!=p.ip_dest[j])   flag_found_ip=0;
+//            }
+//            if(flag_found_ip){
+//                for(j=0;j<6;j++)
+//                    dest_mac[j]=table[i].mac[j];
+//                mac_send_base(p, dest_mac);
+//                return;
+//            }
+//        }
+//    }
+//}
 
-static void net_handle_pkts(Packet p){  //handles received pkts
-    int flag_self_ip = 1, flag_all_ffs = 1;
-    _u8 dest_mac[]={0xff,0xff,0xff,0xff,0xff,0xff};
-    int i;
+_u8 last_query_id=0;
+static int net_handle_pkts(Packet *p){  //handles received pkts in source
+    int flag_self_ip = 1, flag_all_ffs = 1, i = 0;
     for(i=0;i<4;i++){
-        if(p.ip_dest[i] != ipAddressVal[i])   flag_self_ip = 0;
-        if(p.ip_dest[i] != 0xff)              flag_all_ffs = 0;
+        if(p->ip_dest[i] != ipAddressVal[i])   flag_self_ip = 0;
+        if(p->ip_dest[i] != 0xff)              flag_all_ffs = 0;
     }
-    if(flag_self_ip){
-        if (p.ip_reply == 1){
-            arp_insert_ip(p);
-        }else{//send to app layer
-
+    if(flag_self_ip){//packet coming from sink, should go to app layer handler
+        //not handled now
+    }else if(flag_all_ffs && p->ip_query == 1){//Query coming from anyone, make sure it's not duplicated and forward, plus send a reply
+        if (p->ip_query_id == last_query_id){//discard this packet
+            return 0;
         }
+        last_query_id = p->ip_query_id;
+        //forward
+        _u8 dest_mac[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+        mac_send_base(p, dest_mac);
+        //send reply
+//        p.ip_reply=1;
+//        for(i=0;i<6;i++)
+//            dest_mac[i]=p.mac_src[i];
+//        mac_send_base(p,dest_mac);
+        return 1;
+    }else{//packet going to someone else, just forward
+//        net_forward_pkt(p);
     }
-    if(flag_all_ffs){//Send reply in source
-        p.ip_reply=1;
-        for(i=0;i<6;i++)
-            dest_mac[i]=p.mac_src[i];
-        mac_send_base(p,dest_mac);
-    }
-    net_forward_pkt(p);
+    return 0;
 }
 
 
@@ -542,51 +544,67 @@ static int mac_receive_base(Packet *p1, int timeout){
     return 0;
 }
 
+static int mac_receive_packet(Packet *p1){//waits indefinitely for a packet, return: 0: unicast 1: broadcast
+    int i = 0, mac_notequal = 0, mac_notequal_ff = 0;
+    pktPtr = (_u8*)p1;
+    while(1){
+        memset(&temp_msg, 0, sizeof(Packet) + 8);
+        sl_Recv(iSoc, temp_msg, sizeof(Packet) + 8, 0);
+        for(i = 0; i < sizeof(Packet); i++)
+            *(pktPtr + i) = temp_msg[i + 8];
+        for(i = 0, mac_notequal = 0 ; i < 6; i++){
+            if(p1->mac_dest[i] != macAddressVal[i]) mac_notequal = 1;
+            if(p1->mac_dest[i] != 0xff) mac_notequal_ff = 1;
+        }
+        if(mac_notequal == 0 ) return 0;
+        if(mac_notequal_ff == 0 ) return 1;
+    }
+}
+
 static int app_receive_data(){
     Packet p;
     memset(&p, 0, sizeof(Packet));
     return mac_receive_base(&p, 3);
 }
 
-#define expected_nodes_count 20
-static int app_receive_replys(){
-    Packet p;
-    int i = 0;
-    for (i = 0; i < expected_nodes_count; i++){
-        memset(&p, 0, sizeof(Packet));
-        mac_receive_base(&p, 3);
-        net_handle_pkts(p);
-    }
-}
+//#define expected_nodes_count 20
+//static int app_receive_replys(){
+//    Packet p;
+//    int i = 0;
+//    for (i = 0; i < expected_nodes_count; i++){
+//        memset(&p, 0, sizeof(Packet));
+//        mac_receive_base(&p, 3);
+//        net_handle_pkts(p);
+//    }
+//}
 
-static int app_receive_request(Packet  *p){
-    int retval;
-    do{
-        memset(p, 0, sizeof(Packet));
-        retval =  mac_receive_base(p, 1000);
-    }while(retval == 0 || p->app_req != 1);
-    return 1;
+static int receive_packet(Packet  *p){
+    int broadcast = mac_receive_packet(p);
+    int query = net_handle_pkts(p);
+    return query && broadcast;
 }
 
 static int get_data(int nof_loops, int inter_packet_delay, _u8 dest_mac[][6], int devices_count){
     int packtets_received_counter = 0, i = 0;
+    Message("\n\rSending Query...\n\r");
     app_send_query();
-    app_receive_replys();
-    while (nof_loops--){
-        for(i = 0; i < devices_count; i++){
-            if(nof_loops % 50 == 0) Message(".");
-            app_send_request(dest_mac[i]);
-            packtets_received_counter += app_receive_data(); //receive_data()
-        }
-        delay(inter_packet_delay);
-    }
+    Message("\n\rQuery out.\n\r");
+//    app_receive_replys();
+//    while (nof_loops--){
+//        for(i = 0; i < devices_count; i++){
+//            if(nof_loops % 50 == 0) Message(".");
+//            app_send_request(dest_mac[i]);
+//            packtets_received_counter += app_receive_data(); //receive_data()
+//        }
+//        delay(inter_packet_delay);
+//    }
     return packtets_received_counter;
 }
 
 #define nof_loops 1000
 #define nof_devices 3
-#define nof_tests 4
-#define nof_trials 2
+#define nof_tests 1
+#define nof_trials 1
 static void sink_function(){
     int i = 0, j = 0, received_packets = 0;
     int received_packets_counter[nof_tests] = {0, 0, 0, 0};
@@ -629,10 +647,11 @@ static void sink_function(){
 static void source_function(){
     int packets_received_counter = 0;
     Packet p;
+    Message('Waiting for incoming Querys...\n\r');
     while (1){
-        if(packets_received_counter % 10 == 1) UART_PRINT("Received %d packets\n\r", packets_received_counter);
-        packets_received_counter += app_receive_request(&p); //receive_request()
-        app_send_temperature(p.mac_src);
+        if(packets_received_counter % 2 == 1) UART_PRINT("Received %d packets\n\r", packets_received_counter);
+        packets_received_counter += receive_packet(&p); //receive_request()
+//        app_send_temperature(p.mac_src);
     }
     sl_Close(iSoc);
 }
@@ -671,7 +690,6 @@ void print_temp(){
 
 
 // unit test ARP
-
 static void unit_test_arp(){
     Packet p;
     int i;
