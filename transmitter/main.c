@@ -547,18 +547,15 @@ static int mac_receive_base(Packet *p1, int timeout){
 static int mac_receive_packet(Packet *p1){//waits indefinitely for a packet, return: 0: unicast 1: broadcast
     int i = 0, mac_notequal = 0, mac_notequal_ff = 0;
     pktPtr = (_u8*)p1;
-    Message("Waiting for a packet...\n\r");
     while(1){
         memset(&temp_msg, 0, sizeof(Packet) + 8);
         sl_Recv(iSoc, temp_msg, sizeof(Packet) + 8, 0);
         for(i = 0; i < sizeof(Packet); i++)
             *(pktPtr + i) = temp_msg[i + 8];
-        //printmessage(p1, sizeof(Packet));
         for(i = 0, mac_notequal = 0, mac_notequal_ff = 0; i < 6; i++){
             if(p1->mac_dest[i] != macAddressVal[i]) mac_notequal = 1;
             if(p1->mac_dest[i] != 0xff) mac_notequal_ff = 1;
         }
-
         if(mac_notequal == 0 ) return 0;
         if(mac_notequal_ff == 0 ) return 1;
     }
@@ -583,10 +580,7 @@ static int app_receive_data(){
 
 static int receive_packet(Packet  *p){
     int broadcast = mac_receive_packet(p);
-    UART_PRINT("Recieved broadcast:%d\n\r",broadcast);
     int query = net_handle_pkts(p);
-
-    UART_PRINT("Recieved query:%d\n\r",query);
     return query && broadcast;
 }
 
@@ -610,7 +604,7 @@ static int get_data(int nof_loops, int inter_packet_delay, _u8 dest_mac[][6], in
 #define nof_loops 1000
 #define nof_devices 3
 #define nof_tests 1
-#define nof_trials 1
+#define nof_trials 20
 static void sink_function(){
     int i = 0, j = 0, received_packets = 0;
     int received_packets_counter[nof_tests] = {0, 0, 0, 0};
@@ -633,11 +627,12 @@ static void sink_function(){
             UART_PRINT("Inter-sample delay: %dms\n\r\t\t", inter_packet_delay[i]);
             Message("0%                                                      100%\n\r\t\t");
             received_packets = get_data(nof_loops, inter_packet_delay[i], dest_mac, nof_devices);
-            received_packets_counter[i] += received_packets;
+//            received_packets_counter[i] += received_packets;
             Message("\n\r\tTest report:\n\r\t\t");
             UART_PRINT("Packets sent: %d\n\r\t\t", nof_loops * nof_devices);
             UART_PRINT("Packets received: %d\n\r", received_packets);
         }
+        delay(1000);
     }
     Message("Final results:\n\r");
     for(i = 0; i < nof_tests; i++){
@@ -656,8 +651,9 @@ static void source_function(){
     Message("Waiting for incoming Querys...\n\r");
     while (1){
        // if(packets_received_counter)
-            UART_PRINT("Received %d packets\n\r", packets_received_counter);
         packets_received_counter += receive_packet(&p); //receive_request()
+
+        UART_PRINT("Received %d packets\n\r", packets_received_counter);
 //        app_send_temperature(p.mac_src);
     }
     sl_Close(iSoc);
@@ -692,9 +688,6 @@ void print_temp(){
     TMP006DrvGetTemp(&fCurrentTemp);
     UART_PRINT("\n\rCurrent Temprature: %.1f Celsius",fCurrentTemp);
 }
-
-
-
 
 // unit test ARP
 static void unit_test_arp(){
