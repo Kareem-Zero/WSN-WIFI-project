@@ -789,13 +789,13 @@ int main(){
     sl_Start(0, 0, 0);
     unsigned char policyVal;
     sl_WlanPolicySet(SL_POLICY_CONNECTION,SL_CONNECTION_POLICY(0, 0, 0, 0, 0), &policyVal,1 /*PolicyValLen*/);// reset all network policies
-    srand((macAddressVal[0] * macAddressVal[1] * macAddressVal[2] * macAddressVal[3] * macAddressVal[4] * macAddressVal[5]) % RAND_MAX);
 
     Message("\33[2J\r");
     UART_PRINT("%c[H", 27);
     flag_function = ReadDeviceConfiguration();
     DisplayBanner(APPLICATION_NAME);
     get_my_mac();
+    srand((macAddressVal[0] * macAddressVal[1] * macAddressVal[2] * macAddressVal[3] * macAddressVal[4] * macAddressVal[5]) % RAND_MAX);
     get_my_ip();
     print_temp();
 
