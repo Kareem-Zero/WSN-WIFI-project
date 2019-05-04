@@ -486,6 +486,7 @@ static void net_forward_pkt(Packet *p){
     int i,flag_found_ip,j;
     _u8 dest_mac[]={0xff,0xff,0xff,0xff,0xff,0xff};
     if(p->ip_reply == 1){
+        arp_insert_ip(p);
         arp_get_dest_mac(p);
         mac_send_base(p);
         Message("Reply forwarded.\n\r");
@@ -534,6 +535,7 @@ static int net_handle_pkts(Packet *p){//handles received pkts
             Message("Query discarded.\n\r");
             return 0;
         }
+        arp_clear_table();
         arp_insert_ip(p);
         last_query_id = p->ip_query_id;
         //forward
