@@ -547,15 +547,18 @@ static int mac_receive_base(Packet *p1, int timeout){
 static int mac_receive_packet(Packet *p1){//waits indefinitely for a packet, return: 0: unicast 1: broadcast
     int i = 0, mac_notequal = 0, mac_notequal_ff = 0;
     pktPtr = (_u8*)p1;
+    Message("Waiting for a packet...\n\r");
     while(1){
         memset(&temp_msg, 0, sizeof(Packet) + 8);
         sl_Recv(iSoc, temp_msg, sizeof(Packet) + 8, 0);
         for(i = 0; i < sizeof(Packet); i++)
             *(pktPtr + i) = temp_msg[i + 8];
-        for(i = 0, mac_notequal = 0 ; i < 6; i++){
+        //printmessage(p1, sizeof(Packet));
+        for(i = 0, mac_notequal = 0, mac_notequal_ff = 0; i < 6; i++){
             if(p1->mac_dest[i] != macAddressVal[i]) mac_notequal = 1;
             if(p1->mac_dest[i] != 0xff) mac_notequal_ff = 1;
         }
+
         if(mac_notequal == 0 ) return 0;
         if(mac_notequal_ff == 0 ) return 1;
     }
@@ -580,7 +583,10 @@ static int app_receive_data(){
 
 static int receive_packet(Packet  *p){
     int broadcast = mac_receive_packet(p);
+    UART_PRINT("Recieved broadcast:%d\n\r",broadcast);
     int query = net_handle_pkts(p);
+
+    UART_PRINT("Recieved query:%d\n\r",query);
     return query && broadcast;
 }
 
@@ -647,9 +653,10 @@ static void sink_function(){
 static void source_function(){
     int packets_received_counter = 0;
     Packet p;
-    Message('Waiting for incoming Querys...\n\r');
+    Message("Waiting for incoming Querys...\n\r");
     while (1){
-        if(packets_received_counter % 2 == 1) UART_PRINT("Received %d packets\n\r", packets_received_counter);
+       // if(packets_received_counter)
+            UART_PRINT("Received %d packets\n\r", packets_received_counter);
         packets_received_counter += receive_packet(&p); //receive_request()
 //        app_send_temperature(p.mac_src);
     }
