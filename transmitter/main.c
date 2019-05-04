@@ -515,11 +515,12 @@ static void net_send_data(Packet *p, _u8 ip[4]){
         p->ip_dest[i] = ip[i];
         p->ip_src[i] = ipAddressVal[i];
     }
-    arp_get_dest_mac(&p);
-    mac_send_base(&p);
+    arp_get_dest_mac(p);
+    mac_send_base(p);
 }
 
 static void app_send_temperature(){
+    Message("[APP] Sending data.\n\r");
     Packet p;
     memset(&p, 0, sizeof(Packet));
     p.app_temp = 0x49;
