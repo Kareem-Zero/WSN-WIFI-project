@@ -400,19 +400,25 @@ static void arp_clear_table(){
 
 static void arp_insert_ip(Packet *p){
      int i = 0, j = 0, flag_new_ip = 1;
-     for(j=0; j<=ip_count;j++)
-         for(i = 0; i < 4; i++)
-             if(p->ip_src[i] != table[j].ip[i])   flag_new_ip=0;
-     if(!flag_new_ip){
-         if(table[ip_count].used == 1 || ip_count == 10)
-             return;
-         for(i = 0; i<4 ; i++)
-             table[ip_count].ip[i] = p->ip_src[i];
-         for(i = 0; i<6 ;i++)
-             table[ip_count].mac[i] = p->mac_src[i];
-         ip_count++;
-         table[ip_count].used = 1;
-     }
+//     for(j=0; j<=ip_count;j++)
+//         for(i = 0; i < 4; i++)
+//             if(p->ip_src[i] != table[j].ip[i])   flag_new_ip=0;
+//     if(!flag_new_ip){
+        if(table[ip_count].used == 1 || ip_count == 10)
+            return;
+        for(i = 0; i<4 ; i++)
+            table[ip_count].ip[i] = p->ip_src[i];
+        for(i = 0; i<6 ;i++)
+            table[ip_count].mac[i] = p->mac_src[i];
+        ip_count++;
+        table[ip_count].used = 1;
+
+        UART_PRINT("ARP[%d]->IP:",ip_count-1);
+        for(i=0;i<4;i++)UART_PRINT("%02x ",table[0].ip[i]);
+        Message(" MAC:");
+        for(i=0;i<6;i++)UART_PRINT("%02x ",table[0].mac[i]);
+        Message("\n\r");
+//     }
 }
 
 static void arp_get_dest_mac(Packet *p){
@@ -521,14 +527,6 @@ static int net_handle_pkts(Packet *p){//handles received pkts
 
         if(p->ip_reply==1){
             arp_insert_ip(p);
-            UART_PRINT("this is the ip in cell 0 in ARP table\t");
-                  for(i=0;i<4;i++)
-                       UART_PRINT("%02x",table[0].ip[i]);
-                   UART_PRINT("\n\r\n\r");
-                   UART_PRINT("this is the mac in cell 0 in ARP table\t");
-                   for(i=0;i<4;i++)
-                       UART_PRINT("%02x",table[0].mac[i]);
-                   UART_PRINT("\n\r\n\r");
             return 1;
         }
 
@@ -545,15 +543,6 @@ static int net_handle_pkts(Packet *p){//handles received pkts
         _u8 dest_ip[4];
         for(i=0;i<4;i++)dest_ip[i]=p->ip_src[i];
         net_send_reply(dest_ip);
-
-        UART_PRINT("this is the ip in cell 0 in ARP table\t");
-       for(i=0;i<4;i++)
-            UART_PRINT("%02x",table[0].ip[i]);
-        UART_PRINT("\n\r\n\r");
-        UART_PRINT("this is the mac in cell 0 in ARP table\t");
-        for(i=0;i<4;i++)
-            UART_PRINT("%02x",table[0].mac[i]);
-        UART_PRINT("\n\r\n\r");
         return 1;
     }else if(flag_function == 1){//packet going to someone else, just forward
         net_forward_pkt(p);
@@ -621,18 +610,11 @@ static int app_receive_replys(){
     Packet p;
     int i = 0, replys_received = 0;
     for (i = 0; i < expected_nodes_count; i++){
-        memset(&p, 0, sizeof(Packet));
-        mac_receive_base(&p, 3);
+        mac_receive_base(&p, 20);
         replys_received += net_handle_pkts(&p);
     }
     UART_PRINT("Replys received: %d\n\r",replys_received);
     return replys_received;
-}
-
-static int receive_packet(Packet  *p){
-    int broadcast = mac_receive_packet(p);
-    int query = net_handle_pkts(p);
-    return query && broadcast;
 }
 
 static int get_data(int nof_loops, int inter_packet_delay, _u8 dest_mac[][6], int devices_count){
@@ -697,13 +679,13 @@ static void sink_function(){
 }
 
 static void source_function(){
-    int packets_received_counter = 0;
+    int packets_received_counter = 0, broadcast = 0, query = 0;
     Packet p;
     Message("Waiting for incoming Querys...\n\r");
     while (1){
-       // if(packets_received_counter)
-        packets_received_counter += receive_packet(&p); //receive_request()
-
+        broadcast = mac_receive_packet(&p);
+        query = net_handle_pkts(&p);
+        packets_received_counter += query && broadcast;
         UART_PRINT("Received %d packets\n\r", packets_received_counter);
 //        app_send_temperature(p.mac_src);
     }
