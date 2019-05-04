@@ -498,7 +498,18 @@ static void net_forward_pkt(Packet *p){
         }
     }
 }
-
+static void net_send_reply(_u8 ip[4]){
+    Packet p;
+    memset(&p,0,sizeof(Packet));
+    p.ip_reply = 1;
+    int i=0;
+    for(i = 0; i < 4; i++){
+        p.ip_dest[i] = ip[i];
+        p.ip_src[i] = ipAddressVal[i];
+    }
+    arp_get_dest_mac(&p);
+    mac_send_base(&p);
+}
 _u8 last_query_id=0;
 static int net_handle_pkts(Packet *p){//handles received pkts
     int flag_self_ip = 1, flag_all_ffs = 1, i = 0;
@@ -507,10 +518,20 @@ static int net_handle_pkts(Packet *p){//handles received pkts
         if(p->ip_dest[i] != 0xff)              flag_all_ffs = 0;
     }
     if(flag_self_ip){//packet coming to me
+
         if(p->ip_reply==1){
             arp_insert_ip(p);
+            UART_PRINT("this is the ip in cell 0 in ARP table\t");
+                  for(i=0;i<4;i++)
+                       UART_PRINT("%02x",table[0].ip[i]);
+                   UART_PRINT("\n\r\n\r");
+                   UART_PRINT("this is the mac in cell 0 in ARP table\t");
+                   for(i=0;i<4;i++)
+                       UART_PRINT("%02x",table[0].mac[i]);
+                   UART_PRINT("\n\r\n\r");
             return 1;
         }
+
     }else if(flag_all_ffs && p->ip_query == 1 && flag_function == 1){//Query coming from anyone, make sure it's not duplicated and forward, plus send a reply
         if (p->ip_query_id == last_query_id){//discard this packet
             return 0;
@@ -521,9 +542,9 @@ static int net_handle_pkts(Packet *p){//handles received pkts
         _u8 dest_mac[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
         mac_send_to(p, dest_mac);
         //send reply
-        for(i=0;i<6;i++)dest_mac[i]=p->mac_src[i];
-        p->ip_reply=1;
-        mac_send_to(p,dest_mac);
+        _u8 dest_ip[4];
+        for(i=0;i<4;i++)dest_ip[i]=p->ip_src[i];
+        net_send_reply(dest_ip);
 
         UART_PRINT("this is the ip in cell 0 in ARP table\t");
        for(i=0;i<4;i++)
