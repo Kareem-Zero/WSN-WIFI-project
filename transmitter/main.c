@@ -530,7 +530,7 @@ static void app_send_temperature(){
 
 
 static void app_handle_packet(Packet *p){
-    int i = 0, loops = 10, interpacket_delay = 100;
+    int i = 0, loops = 10, interpacket_delay = 1000;
     if(p->app_req==1){
         Message("[APP] Request received.\n\r");
         for(i = 0; i < loops; i++){
@@ -679,14 +679,14 @@ static int get_data(int nof_loops, int inter_packet_delay){
         app_send_request(table[i].ip);
     }
     while (nof_loops--){
-        broadcast = mac_receive_packet(&p);
+        broadcast = mac_receive_base(&p, 500);
         query = net_handle_pkts(&p);
         packtets_received_counter += query;
     }
     return packtets_received_counter;
 }
 
-#define nof_loops 10
+#define nof_loops 20
 #define nof_tests 1
 #define nof_trials 50
 static void sink_function(){
