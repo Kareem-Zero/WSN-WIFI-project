@@ -392,7 +392,7 @@ int mac_listen(){
 }
 
 static void arp_clear_table(){
-    Message("ARP table reset.\n\r");
+    Message("[ARP] Table reset.\n\r");
     int i;
     for(i = 0; i < 10; i++)table[i].used=0;
     ip_count = 0;
@@ -414,7 +414,7 @@ static void arp_insert_ip(Packet *p){
         ip_count++;
 
 
-        UART_PRINT("ARP[%d]->IP:",ip_count-1);
+        UART_PRINT("[ARP] @%d->IP:",ip_count-1);
         for(i=0;i<4;i++)UART_PRINT("%02x ",table[ip_count-1].ip[i]);
         Message(" MAC:");
         for(i=0;i<6;i++)UART_PRINT("%02x ",table[ip_count-1].mac[i]);
@@ -449,7 +449,6 @@ static void mac_send_base(Packet *p){
         p->mac_src[i] = macAddressVal[i];
 //    if(!mac_listen())
 //        random_backoff_delay();
-    printmessage(p, sizeof(Packet));
     sl_Send(iSoc, p, sizeof(Packet)+8,SL_RAW_RF_TX_PARAMS(flag_channel,(SlRateIndex_e)flag_rate, flag_power, 1));
 }
 
@@ -472,7 +471,7 @@ static void net_send_query(Packet p, _u8 dest_ip[4]){
 }
 
 static void net_forward_pkt(Packet *p){
-    Message("Packet forwarded.\n\r");
+    Message("[NET] Packet forwarded.\n\r");
     if(p->ip_reply == 1){
         arp_insert_ip(p);
     }
@@ -515,7 +514,7 @@ static int net_handle_pkts(Packet *p){//handles received pkts
         }
     }else if(flag_all_ffs && p->ip_query == 1 && flag_function == 1){//Query coming from anyone, make sure it's not duplicated and forward, plus send a reply
         if (p->ip_query_id == last_query_id){//discard this packet
-            Message("Query discarded.\n\r");
+            Message("[NET] Query discarded.\n\r");
             return 0;
         }
         arp_clear_table();
@@ -528,7 +527,7 @@ static int net_handle_pkts(Packet *p){//handles received pkts
         _u8 dest_ip[4];
         for(i=0;i<4;i++)dest_ip[i]=p->ip_src[i];
         net_send_reply(dest_ip);
-        Message("Query handled.\n\r");
+        Message("[NET] Query handled.\n\r");
         return 1;
     }else if(flag_function == 1){//packet going to someone else, just forward
         net_forward_pkt(p);
