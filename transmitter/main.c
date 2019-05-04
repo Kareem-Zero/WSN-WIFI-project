@@ -68,7 +68,7 @@ typedef struct Packet
     //  Network layer
     _u8 ip_src[4];_u8 ip_dest[4];_u8 ip_hop_count;_u8 ip_query;_u8 ip_query_id; _u8 ip_reply;
     //  App layer
-    _u8 app_req; _u8 app_temp; _u8 app_timestamp;
+    _u8 app_req; _u8 app_data; _u8 app_temp; _u8 app_timestamp;
 } Packet;
 
 typedef struct Arp {
@@ -381,6 +381,38 @@ static void printmessage(_u8 message[], int size){
     UART_PRINT("\n\r*************************************************");
 }
 
+
+
+static void get_my_mac(){
+    unsigned char macAddressLen = SL_MAC_ADDR_LEN;
+    sl_NetCfgGet(SL_MAC_ADDRESS_GET, NULL, &macAddressLen, (unsigned char *) macAddressVal);
+    printmessage(macAddressVal, 6);
+}
+
+static void get_my_ip(){
+    int i;
+    for(i=0;i<4;i++)
+        ipAddressVal[i]=macAddressVal[i+2];
+    ipAddressVal[0]=rand()%(0x66);
+    ipAddressVal[1]=rand()%(0x66);
+    printmessage(ipAddressVal, 4);
+}
+
+int ReadDeviceConfiguration(){//check P018 (GPIO28)
+    unsigned int uiGPIOPort;
+    unsigned char pucGPIOPin;
+    GPIO_IF_GetPortNPin(28, &uiGPIOPort, &pucGPIOPin);
+    if(GPIO_IF_Get(28, uiGPIOPort, pucGPIOPin) == 1)//Sink mode
+        return 0;
+    return 1;//Source mode
+}
+
+void print_temp(){
+    float fCurrentTemp;
+    TMP006DrvGetTemp(&fCurrentTemp);
+    UART_PRINT("\n\rCurrent Temprature: %.1f Celsius\n\r",fCurrentTemp);
+}
+
 int mac_listen(){
     char temp_msg[sizeof(Packet)+8]={NULL};
     int flag_empty=1;
@@ -454,21 +486,7 @@ static void mac_send_base(Packet *p){
 
 
 
-_u8 unique_query=7;       //(macAddressVal[5]*macAddressVal[6])%1000;
-_u8 sent_query;
-static void net_send_query(Packet p, _u8 dest_ip[4]){
-    int i;
-    for(i=0;i<4;i++){
-        p.ip_dest[i]=dest_ip[i];
-        p.ip_src[i]=ipAddressVal[i];
-    }
-    p.ip_query=1;
-    p.ip_query_id = unique_query;
-//    sent_query = unique_query;      // to check if i sent the query i am recving
-    unique_query++;
-    _u8 dest_mac[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-    mac_send_to(&p, dest_mac);
-}
+
 
 static void net_forward_pkt(Packet *p){
     Message("[NET] Packet forwarded.\n\r");
@@ -491,10 +509,34 @@ static void net_send_reply(_u8 ip[4]){
     arp_get_dest_mac(&p);
     mac_send_base(&p);
 }
+static void net_send_data(Packet *p, _u8 ip[4]){
+    int i=0;
+    for(i = 0; i < 4; i++){
+        p->ip_dest[i] = ip[i];
+        p->ip_src[i] = ipAddressVal[i];
+    }
+    arp_get_dest_mac(&p);
+    mac_send_base(&p);
+}
+
+static void app_send_temperature(){
+    Packet p;
+    memset(&p, 0, sizeof(Packet));
+    p.app_temp = 0x49;
+    net_send_data(&p, table[0].ip);
+}
+
 
 static void app_handle_packet(Packet *p){
+    int i = 0, loops = 10, interpacket_delay = 100;
     if(p->app_req==1){
         Message("[APP] Request received.\n\r");
+        for(i = 0; i < loops; i++){
+            app_send_temperature();
+            delay(interpacket_delay);
+        }
+    }else if (p->app_data == 1){
+        UART_PRINT("[APP] Temperature:%02X\n\r",p->app_temp);
     }
 }
 
@@ -511,6 +553,7 @@ static int net_handle_pkts(Packet *p){//handles received pkts
             return 1;
         }else{
             app_handle_packet(p);
+            return 1;
         }
     }else if(flag_all_ffs && p->ip_query == 1 && flag_function == 1){//Query coming from anyone, make sure it's not duplicated and forward, plus send a reply
         if (p->ip_query_id == last_query_id){//discard this packet
@@ -535,13 +578,6 @@ static int net_handle_pkts(Packet *p){//handles received pkts
     return 0;
 }
 
-
-static void app_send_query(){
-    Packet p;
-    memset(&p, 0, sizeof(Packet));
-    _u8 dest_ip[]={0xff, 0xff, 0xff, 0xff};
-    net_send_query(p, dest_ip);
-}
 
 char temp_msg[sizeof(Packet) + 8];
 _u8* pktPtr;
@@ -584,22 +620,12 @@ static int mac_receive_packet(Packet *p1){//waits indefinitely for a packet, ret
     }
 }
 
-//static int app_receive_data(){
-//    Packet p;
-//    memset(&p, 0, sizeof(Packet));
-//    return mac_receive_base(&p, 3);
-//}
-
-#define expected_nodes_count 5
-static int app_receive_replys(){
+static int app_receive_data(){
     Packet p;
-    int i = 0, replys_received = 0;
-    for (i = 0; i < expected_nodes_count; i++){
-        mac_receive_base(&p, 20);
-        replys_received += net_handle_pkts(&p);
-    }
-    return replys_received;
+    memset(&p, 0, sizeof(Packet));
+    return mac_receive_base(&p, 3);
 }
+
 
 static void net_send_request(Packet *p, _u8 dest_ip[4]){
     int i;
@@ -618,28 +644,42 @@ static void app_send_request(_u8 dest_ip[4]){
     net_send_request(&p, dest_ip);
 }
 
-//static void app_send_temperature(_u8 dest_mac[6]){
-//    Packet p;
-//    memset(&p, 0, sizeof(Packet));
-//    p.app_temp = 0x49;
-//    mac_send_base(p, dest_mac);
-//}
+
+#define expected_nodes_count 5
+_u8 unique_query=7;       //(macAddressVal[5]*macAddressVal[6])%1000;
+_u8 sent_query;
+static int net_init(){
+    Packet p;
+    memset(&p, 0, sizeof(Packet));
+    int i = 0, replys_received = 0;
+    for(i=0;i<4;i++){
+        p.ip_dest[i] = 0xff;
+        p.ip_src[i] = ipAddressVal[i];
+    }
+    p.ip_query = 1;
+    p.ip_query_id = unique_query;
+    unique_query++;
+    _u8 dest_mac[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+    mac_send_to(&p, dest_mac);
+    for (i = 0; i < expected_nodes_count; i++){
+        mac_receive_base(&p, 20);
+        replys_received += net_handle_pkts(&p);
+    }
+    return replys_received;
+}
 
 static int get_data(int nof_loops, int inter_packet_delay){
-    int packtets_received_counter = 0, i = 0;
-    Message("Sending Query...\n\r");
+    int packtets_received_counter = 0, i = 0, broadcast = 0, query = 0;
     arp_clear_table();
-    app_send_query();
-    Message("Waiting for Replys...\n\r");
-    int devices_count = app_receive_replys();
-    UART_PRINT("Source nodes available: %d:\n\r", devices_count);
+    Packet p;
+    int devices_count = net_init();
+    for(i = 0; i < devices_count; i++){
+        app_send_request(table[i].ip);
+    }
     while (nof_loops--){
-        for(i = 0; i < devices_count; i++){
-//            if(nof_loops % 50 == 0) Message(".");
-            app_send_request(table[i].ip);
-//            packtets_received_counter += app_receive_data(); //receive_data()
-        }
-        delay(inter_packet_delay);
+        broadcast = mac_receive_packet(&p);
+        query = net_handle_pkts(&p);
+        packtets_received_counter += query;
     }
     return packtets_received_counter;
 }
@@ -686,7 +726,7 @@ static void sink_function(){
 static void source_function(){
     int packets_received_counter = 0, broadcast = 0, query = 0;
     Packet p;
-    Message("Waiting for incoming Querys...\n\r");
+    Message("[APP] Waiting for instructions.\n\r");
     while (1){
         broadcast = mac_receive_packet(&p);
         query = net_handle_pkts(&p);
@@ -696,87 +736,6 @@ static void source_function(){
 //        app_send_temperature(p.mac_src);
     }
     sl_Close(iSoc);
-}
-
-static void get_my_mac(){
-    unsigned char macAddressLen = SL_MAC_ADDR_LEN;
-    sl_NetCfgGet(SL_MAC_ADDRESS_GET, NULL, &macAddressLen, (unsigned char *) macAddressVal);
-    printmessage(macAddressVal, 6);
-}
-
-static void get_my_ip(){
-    int i;
-    for(i=0;i<4;i++)
-        ipAddressVal[i]=macAddressVal[i+2];
-    ipAddressVal[0]=rand()%(0x66);
-    ipAddressVal[1]=rand()%(0x66);
-    printmessage(ipAddressVal, 4);
-}
-
-int ReadDeviceConfiguration(){//check P018 (GPIO28)
-    unsigned int uiGPIOPort;
-    unsigned char pucGPIOPin;
-    GPIO_IF_GetPortNPin(28, &uiGPIOPort, &pucGPIOPin);
-    if(GPIO_IF_Get(28, uiGPIOPort, pucGPIOPin) == 1)//Sink mode
-        return 0;
-    return 1;//Source mode
-}
-
-void print_temp(){
-    float fCurrentTemp;
-    TMP006DrvGetTemp(&fCurrentTemp);
-    UART_PRINT("\n\rCurrent Temprature: %.1f Celsius",fCurrentTemp);
-}
-
-//// unit test ARP
-//static void unit_test_arp(){
-//    Packet p;
-//    int i;
-//    memset(&p,0,sizeof(Packet));
-//    for(i=0;i<4;i++){
-//        p.ip_src[i]=0x55;
-//        p.ip_dest[i]=0x99;
-//       p.mac_src[i]=0x66;
-//    }
-//    // recved a packet
-//    arp_insert_ip(p);
-//    UART_PRINT("this is the ip in cell 0 in ARP table\t");
-//   for(i=0;i<4;i++)
-//        UART_PRINT("%02x",table[0].ip[i]);
-//    UART_PRINT("\n\r\n\r");
-//    UART_PRINT("this is the mac in cell 0 in ARP table\t");
-//    for(i=0;i<4;i++)
-//        UART_PRINT("%02x",table[0].mac[i]);
-//    UART_PRINT("\n\r\n\r");
-//    //////////////////
-//    memset(&p,0,sizeof(Packet));
-//    for(i=0;i<4;i++){
-//            p.ip_src[i]=0x99;
-//            p.ip_dest[i]=0x55;
-//        }
-//    //sending a packet
-//    arp_get_dest_mac(&p);
-//    UART_PRINT("this is the mac injected, read from the packet\t");
-//    for(i=0;i<4;i++)
-//        UART_PRINT("%02x",p.mac_dest[i]);
-//    UART_PRINT("\n\r\n\r");
-//}
-
-void unit_test_backoff(){
-    Message("\n\r////////Testing backoff//////////\n\r");
-    struct SlTimeval_t timeVal;
-    timeVal.tv_sec =  0;             // Seconds
-    timeVal.tv_usec = 1;             // Microseconds. 10000 microseconds resolution
-    sl_SetSockOpt(iSoc, SL_SOL_SOCKET,SL_SO_RCVTIMEO, (_u8 *)&timeVal, sizeof(timeVal));
-    int res = 0, i = 0;
-    for(i = 0; i < 10; i++){
-        res = mac_listen();
-        UART_PRINT("\n\r%d",res);
-//        if(!res){
-//            random_backoff_delay();
-//        }
-    }
-    Message("\n\r\n\rdone test.");
 }
 
 int main(){
