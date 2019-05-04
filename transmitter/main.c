@@ -524,6 +524,7 @@ static void app_send_temperature(){
     Packet p;
     memset(&p, 0, sizeof(Packet));
     p.app_temp = 0x49;
+    p.app_data = 1;
     net_send_data(&p, table[0].ip);
 }
 
