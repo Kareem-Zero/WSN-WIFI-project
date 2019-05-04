@@ -29,7 +29,7 @@ int flag_function = 0;//1: SINK, 0: SOURCE
 #define flag_channel 2
 #define flag_rate 5
 #define flag_packets 1
-#define flag_power 15
+#define flag_power 1
 int iSoc;
 #define APPLICATION_NAME        (flag_function==0?"SINK NODE 2.0":"SOURCE NODE 2.0")
 
@@ -545,19 +545,26 @@ static int mac_receive_base(Packet *p1, int timeout){
 }
 
 static int mac_receive_packet(Packet *p1){//waits indefinitely for a packet, return: 0: unicast 1: broadcast
-    int i = 0, mac_notequal = 0, mac_notequal_ff = 0;
+    int i = 0, mac_notequal = 0, mac_notequal_ff = 0, mac_not_from_sink = 0;
+    _u8 mac_sink[] = {0xD4, 0x36, 0x39, 0x4A, 0x59, 0x6D};
     pktPtr = (_u8*)p1;
     while(1){
         memset(&temp_msg, 0, sizeof(Packet) + 8);
         sl_Recv(iSoc, temp_msg, sizeof(Packet) + 8, 0);
         for(i = 0; i < sizeof(Packet); i++)
             *(pktPtr + i) = temp_msg[i + 8];
-        for(i = 0, mac_notequal = 0, mac_notequal_ff = 0; i < 6; i++){
+        for(i = 0, mac_notequal = 0, mac_notequal_ff = 0, mac_not_from_sink = 0; i < 6; i++){
             if(p1->mac_dest[i] != macAddressVal[i]) mac_notequal = 1;
             if(p1->mac_dest[i] != 0xff) mac_notequal_ff = 1;
+            if(p1->mac_src[i] != mac_sink[i]) mac_not_from_sink = 1;
         }
-        if(mac_notequal == 0 ) return 0;
-        if(mac_notequal_ff == 0 ) return 1;
+
+        if(mac_notequal == 0) return 0;
+        if(mac_notequal_ff == 0) return 1;
+
+        //uncomment for hardcoded away nodes
+//        if(mac_notequal == 0 && mac_not_from_sink == 1) return 0;
+//        if(mac_notequal_ff == 0 && mac_not_from_sink == 1) return 1;
     }
 }
 
@@ -604,7 +611,7 @@ static int get_data(int nof_loops, int inter_packet_delay, _u8 dest_mac[][6], in
 #define nof_loops 1000
 #define nof_devices 3
 #define nof_tests 1
-#define nof_trials 20
+#define nof_trials 50
 static void sink_function(){
     int i = 0, j = 0, received_packets = 0;
     int received_packets_counter[nof_tests] = {0, 0, 0, 0};
