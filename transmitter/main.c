@@ -407,10 +407,9 @@ int ReadDeviceConfiguration(){//check P018 (GPIO28)
     return 1;//Source mode
 }
 
-void print_temp(){
-    float fCurrentTemp;
+float fCurrentTemp;
+void update_temp(){
     TMP006DrvGetTemp(&fCurrentTemp);
-    UART_PRINT("\n\rCurrent Temprature: %.1f Celsius\n\r",fCurrentTemp);
 }
 
 int mac_listen(){
@@ -513,8 +512,10 @@ static void app_send_temperature(){
     Message("[APP] Sending data.\n\r");
     Packet p;
     memset(&p, 0, sizeof(Packet));
+    update_temp();
     p.app_temp = 0x49;
     p.app_data = 1;
+    p.app_temp = (int)fCurrentTemp;
     net_send_data(&p, table[0].ip);
 }
 
@@ -529,7 +530,7 @@ static void app_handle_packet(Packet *p){
             delay(interpacket_delay);
         }
     }else if (p->app_data == 1){
-        UART_PRINT("[APP] Temperature:%02X\n\r",p->app_temp);
+        UART_PRINT("[APP] IP:%02X %02X %02X %02X Temperature:%02X\n\r",p->ip_src[0],p->ip_src[1],p->ip_src[2],p->ip_src[3], p->app_temp);
     }
 }
 
@@ -671,13 +672,13 @@ static int get_data(int nof_loops){
     return packtets_received_counter;
 }
 
-#define nof_loops 400
-#define nof_tests 1
+#define nof_loops 300
+#define nof_tests 4
 #define nof_trials 3
 static void sink_function(){
     int i = 0, j = 0, received_packets = 0;
     int received_packets_counter[] = {0, 0, 0, 0};
-    int inter_packet_delay[] = {1, 2, 3, 4};
+    int inter_packet_delay[] = {1, 1, 1, 1};
     int devices_count = net_init();
     UART_PRINT("Source nodes available: %d:\n\r", devices_count);
     UART_PRINT("Samples to take: %d\n\r", nof_loops);
@@ -699,7 +700,6 @@ static void sink_function(){
             received_packets = get_data(nof_loops * inter_packet_delay[i]);
             received_packets_counter[i] += received_packets;
             Message("\n\r\tTest report:\n\r\t\t");
-            UART_PRINT("Packets sent: %d\n\r\t\t", nof_loops * devices_count);
             UART_PRINT("Packets received: %d\n\r", received_packets);
         }
         delay(1000);
@@ -745,8 +745,8 @@ int main(){
     get_my_mac();
     srand((macAddressVal[0] * macAddressVal[1] * macAddressVal[2] * macAddressVal[3] * macAddressVal[4] * macAddressVal[5]) % RAND_MAX);
     get_my_ip();
-    print_temp();
-
+    update_temp();
+    UART_PRINT("\n\rCurrent Temprature: %.1f Celsius\n\r",fCurrentTemp);
     iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, flag_channel);
     if (flag_function) source_function();
     else sink_function();
