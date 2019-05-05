@@ -24,7 +24,7 @@
 #include "uart_if.h"
 #endif
 #include "pinmux.h"
-
+int kiro;
 int flag_function = 0;//0: SINK, 1: SOURCE
 #define flag_channel 2
 #define flag_rate 5
@@ -521,7 +521,6 @@ static void app_send_temperature(){
 int request_received_counter = 0;
 static void app_handle_packet(Packet *p){
     int i = 0, loops = 10, interpacket_delay;
-    Message("hamada");
     if(p->app_req==1){
         UART_PRINT("[APP] Request received #%d.\n\r", ++request_received_counter);
         interpacket_delay = p->app_delay_mil + p->app_delay_sec * 1000;
@@ -672,7 +671,7 @@ static int get_data(int nof_loops){
     return packtets_received_counter;
 }
 
-#define nof_loops 40
+#define nof_loops 400
 #define nof_tests 1
 #define nof_trials 3
 static void sink_function(){
@@ -685,7 +684,7 @@ static void sink_function(){
     UART_PRINT("Tests: %d\n\r", nof_tests);
     UART_PRINT("Trials: %d\n\r", nof_trials);
     struct SlTimeval_t timeVal;
-    timeVal.tv_sec =  0;             // Seconds
+    timeVal.tv_sec =  0;                // Seconds
     timeVal.tv_usec = 2000;             // Microseconds. 10000 microseconds resolution
     sl_SetSockOpt(iSoc, SL_SOL_SOCKET,SL_SO_RCVTIMEO, (_u8 *)&timeVal, sizeof(timeVal));    // Enable receive timeout
     for(j = 0; j < nof_trials; j++){
@@ -693,8 +692,8 @@ static void sink_function(){
         for(i = 0, received_packets = 0; i < nof_tests; i++){
             UART_PRINT("\n\rStarting test #%d:\n\r\t\t", i + 1);
             UART_PRINT("Inter-sample delay: %dms\n\r\t\t", inter_packet_delay[i]);
-            for(i = 0; i < devices_count; i++){
-                app_send_request(table[i].ip, inter_packet_delay[i]);
+            for(kiro = 0; kiro < devices_count; kiro++){
+                app_send_request(table[kiro].ip, inter_packet_delay[i]);///////
             }
             Message("0%                                                      100%\n\r\t\t");
             received_packets = get_data(nof_loops * inter_packet_delay[i]);
