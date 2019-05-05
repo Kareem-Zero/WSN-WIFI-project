@@ -543,7 +543,7 @@ static int net_handle_pkts(Packet *p){//handles received pkts
     if(flag_self_ip){//packet coming to me
         if(p->ip_reply == 1){
             arp_insert_ip(p);
-            return 0;
+            return 1;
         }else{
             app_handle_packet(p);
             return 1;
@@ -653,7 +653,7 @@ static int net_init(){
     _u8 dest_mac[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
     mac_send_to(&p, dest_mac);
     for (i = 0; i < expected_nodes_count; i++){
-        mac_receive_base(&p, 20);
+        mac_receive_base(&p, 25);
         replys_received += net_handle_pkts(&p);
     }
     return replys_received;
@@ -663,7 +663,7 @@ static int get_data(int nof_loops){
     int packtets_received_counter = 0, data_packet = 0;
     Packet p;
     while (nof_loops--){
-        mac_receive_base(&p, 20);
+        mac_receive_base(&p, 25);
         data_packet = net_handle_pkts(&p);
         packtets_received_counter += data_packet;
         if(data_packet)Message(".");
@@ -671,8 +671,8 @@ static int get_data(int nof_loops){
     return packtets_received_counter;
 }
 
-#define nof_loops 40
-#define nof_tests 4
+#define nof_loops 2
+#define nof_tests 1
 #define nof_trials 3
 static void sink_function(){
     int i = 0, j = 0, received_packets = 0;
