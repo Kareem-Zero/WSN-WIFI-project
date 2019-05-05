@@ -521,6 +521,7 @@ static void app_send_temperature(){
 int request_received_counter = 0;
 static void app_handle_packet(Packet *p){
     int i = 0, loops = 10, interpacket_delay;
+    Message("hamada");
     if(p->app_req==1){
         UART_PRINT("[APP] Request received #%d.\n\r", ++request_received_counter);
         interpacket_delay = p->app_delay_mil + p->app_delay_sec * 1000;
@@ -671,7 +672,7 @@ static int get_data(int nof_loops){
     return packtets_received_counter;
 }
 
-#define nof_loops 2
+#define nof_loops 40
 #define nof_tests 1
 #define nof_trials 3
 static void sink_function(){
