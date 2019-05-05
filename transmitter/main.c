@@ -68,7 +68,7 @@ typedef struct Packet
     //  Network layer
     _u8 ip_src[4];_u8 ip_dest[4];_u8 ip_hop_count;_u8 ip_query;_u8 ip_query_id; _u8 ip_reply;
     //  App layer
-    _u8 app_req; _u8 app_data; _u8 app_temp; _u8 app_timestamp;
+    _u8 app_req; _u8 app_data; _u8 app_delay_sec; _u8 app_delay_mil; _u8 app_temp; _u8 app_timestamp;
 } Packet;
 
 typedef struct Arp {
@@ -431,27 +431,21 @@ static void arp_clear_table(){
 }
 
 static void arp_insert_ip(Packet *p){
-     int i = 0, j = 0, flag_new_ip = 1;
-//     for(j=0; j<=ip_count;j++)
-//         for(i = 0; i < 4; i++)
-//             if(p->ip_src[i] != table[j].ip[i])   flag_new_ip=0;
-//     if(!flag_new_ip){
-        if(table[ip_count].used == 1 || ip_count == 10)
-            return;
-        for(i = 0; i<4 ; i++)
-            table[ip_count].ip[i] = p->ip_src[i];
-        for(i = 0; i<6 ;i++)
-            table[ip_count].mac[i] = p->mac_src[i];
-        table[ip_count].used = 1;
-        ip_count++;
+    int i = 0;
+    if(table[ip_count].used == 1 || ip_count == 10)
+        return;
+    for(i = 0; i<4 ; i++)
+        table[ip_count].ip[i] = p->ip_src[i];
+    for(i = 0; i<6 ;i++)
+        table[ip_count].mac[i] = p->mac_src[i];
+    table[ip_count].used = 1;
+    ip_count++;
 
-
-        UART_PRINT("[ARP] @%d->IP:",ip_count-1);
-        for(i=0;i<4;i++)UART_PRINT("%02x ",table[ip_count-1].ip[i]);
-        Message(" MAC:");
-        for(i=0;i<6;i++)UART_PRINT("%02x ",table[ip_count-1].mac[i]);
-        Message("\n\r");
-//     }
+    UART_PRINT("[ARP] @%d->IP:",ip_count-1);
+    for(i=0;i<4;i++)UART_PRINT("%02x ",table[ip_count-1].ip[i]);
+    Message(" MAC:");
+    for(i=0;i<6;i++)UART_PRINT("%02x ",table[ip_count-1].mac[i]);
+    Message("\n\r");
 }
 
 static void arp_get_dest_mac(Packet *p){
@@ -467,14 +461,6 @@ static void arp_get_dest_mac(Packet *p){
     }
 }
 
-static void mac_send_to(Packet *p, _u8 dest_mac[6]){
-    int i = 0;
-    for(i = 0; i < 6; i++){
-        p->mac_dest[i] = dest_mac[i];
-    }
-    mac_send_base(p);
-}
-
 static void mac_send_base(Packet *p){
     int i = 0;
     for(i = 0; i < 6; i++)
@@ -484,9 +470,13 @@ static void mac_send_base(Packet *p){
     sl_Send(iSoc, p, sizeof(Packet)+8,SL_RAW_RF_TX_PARAMS(flag_channel,(SlRateIndex_e)flag_rate, flag_power, 1));
 }
 
-
-
-
+static void mac_send_to(Packet *p, _u8 dest_mac[6]){
+    int i = 0;
+    for(i = 0; i < 6; i++){
+        p->mac_dest[i] = dest_mac[i];
+    }
+    mac_send_base(p);
+}
 
 static void net_forward_pkt(Packet *p){
     Message("[NET] Packet forwarded.\n\r");
@@ -528,11 +518,12 @@ static void app_send_temperature(){
     net_send_data(&p, table[0].ip);
 }
 
-
+int request_received_counter = 0;
 static void app_handle_packet(Packet *p){
-    int i = 0, loops = 10, interpacket_delay = 1000;
+    int i = 0, loops = 10, interpacket_delay;
     if(p->app_req==1){
-        Message("[APP] Request received.\n\r");
+        UART_PRINT("[APP] Request received #%d.\n\r", ++request_received_counter);
+        interpacket_delay = p->app_delay_mil + p->app_delay_sec * 1000;
         for(i = 0; i < loops; i++){
             app_send_temperature();
             delay(interpacket_delay);
@@ -550,9 +541,9 @@ static int net_handle_pkts(Packet *p){//handles received pkts
         if(p->ip_dest[i] != 0xff)              flag_all_ffs = 0;
     }
     if(flag_self_ip){//packet coming to me
-        if(p->ip_reply==1){
+        if(p->ip_reply == 1){
             arp_insert_ip(p);
-            return 1;
+            return 0;
         }else{
             app_handle_packet(p);
             return 1;
@@ -573,7 +564,7 @@ static int net_handle_pkts(Packet *p){//handles received pkts
         for(i=0;i<4;i++)dest_ip[i]=p->ip_src[i];
         net_send_reply(dest_ip);
         Message("[NET] Query handled.\n\r");
-        return 1;
+        return 0;
     }else if(flag_function == 1){//packet going to someone else, just forward
         net_forward_pkt(p);
     }
@@ -622,13 +613,6 @@ static int mac_receive_packet(Packet *p1){//waits indefinitely for a packet, ret
     }
 }
 
-static int app_receive_data(){
-    Packet p;
-    memset(&p, 0, sizeof(Packet));
-    return mac_receive_base(&p, 3);
-}
-
-
 static void net_send_request(Packet *p, _u8 dest_ip[4]){
     int i;
     for(i=0;i<4;i++){
@@ -639,10 +623,13 @@ static void net_send_request(Packet *p, _u8 dest_ip[4]){
     mac_send_base(p);
 }
 
-static void app_send_request(_u8 dest_ip[4]){
+static void app_send_request(_u8 dest_ip[4], _u8 delay){
+    UART_PRINT("[NET] Sending Request to IP:%02X %02X %02X %02X\n\r",dest_ip[0],dest_ip[1],dest_ip[2],dest_ip[3]);
     Packet p;
     memset(&p, 0, sizeof(Packet));
     p.app_req = 1;
+    p.app_delay_sec = delay / 1000;
+    p.app_delay_mil = delay % 1000;
     net_send_request(&p, dest_ip);
 }
 
@@ -651,6 +638,8 @@ static void app_send_request(_u8 dest_ip[4]){
 _u8 unique_query=7;       //(macAddressVal[5]*macAddressVal[6])%1000;
 _u8 sent_query;
 static int net_init(){
+    Message("[NET] Initialising the network.\n\r");
+    arp_clear_table();
     Packet p;
     memset(&p, 0, sizeof(Packet));
     int i = 0, replys_received = 0;
@@ -670,29 +659,27 @@ static int net_init(){
     return replys_received;
 }
 
-static int get_data(int nof_loops, int inter_packet_delay){
-    int packtets_received_counter = 0, i = 0, broadcast = 0, query = 0;
-    arp_clear_table();
+static int get_data(int nof_loops){
+    int packtets_received_counter = 0, data_packet = 0;
     Packet p;
-    int devices_count = net_init();
-    for(i = 0; i < devices_count; i++){
-        app_send_request(table[i].ip);
-    }
     while (nof_loops--){
-        broadcast = mac_receive_base(&p, 500);
-        query = net_handle_pkts(&p);
-        packtets_received_counter += query;
+        mac_receive_base(&p, 20);
+        data_packet = net_handle_pkts(&p);
+        packtets_received_counter += data_packet;
+        if(data_packet)Message(".");
     }
     return packtets_received_counter;
 }
 
-#define nof_loops 20
-#define nof_tests 1
-#define nof_trials 50
+#define nof_loops 40
+#define nof_tests 4
+#define nof_trials 3
 static void sink_function(){
     int i = 0, j = 0, received_packets = 0;
-    int received_packets_counter[nof_tests] = {0, 0, 0, 0};
-    int inter_packet_delay[nof_tests] = {1000, 2, 3, 4};
+    int received_packets_counter[] = {0, 0, 0, 0};
+    int inter_packet_delay[] = {1, 2, 3, 4};
+    int devices_count = net_init();
+    UART_PRINT("Source nodes available: %d:\n\r", devices_count);
     UART_PRINT("Samples to take: %d\n\r", nof_loops);
     UART_PRINT("Tests: %d\n\r", nof_tests);
     UART_PRINT("Trials: %d\n\r", nof_trials);
@@ -705,11 +692,14 @@ static void sink_function(){
         for(i = 0, received_packets = 0; i < nof_tests; i++){
             UART_PRINT("\n\rStarting test #%d:\n\r\t\t", i + 1);
             UART_PRINT("Inter-sample delay: %dms\n\r\t\t", inter_packet_delay[i]);
+            for(i = 0; i < devices_count; i++){
+                app_send_request(table[i].ip, inter_packet_delay[i]);
+            }
             Message("0%                                                      100%\n\r\t\t");
-            received_packets = get_data(nof_loops, inter_packet_delay[i]);
-//            received_packets_counter[i] += received_packets;
+            received_packets = get_data(nof_loops * inter_packet_delay[i]);
+            received_packets_counter[i] += received_packets;
             Message("\n\r\tTest report:\n\r\t\t");
-//            UART_PRINT("Packets sent: %d\n\r\t\t", nof_loops * nof_devices);
+            UART_PRINT("Packets sent: %d\n\r\t\t", nof_loops * devices_count);
             UART_PRINT("Packets received: %d\n\r", received_packets);
         }
         delay(1000);
@@ -726,18 +716,12 @@ static void sink_function(){
 }
 
 static void source_function(){
-    int packets_received_counter = 0, broadcast = 0, query = 0;
     Packet p;
     Message("[APP] Waiting for instructions.\n\r");
     while (1){
-        broadcast = mac_receive_packet(&p);
-        query = net_handle_pkts(&p);
-        packets_received_counter += query && broadcast;
-
-//        UART_PRINT("Received %d packets\n\r", packets_received_counter);
-//        app_send_temperature(p.mac_src);
+        mac_receive_packet(&p);
+        net_handle_pkts(&p);
     }
-    sl_Close(iSoc);
 }
 
 int main(){
@@ -766,4 +750,5 @@ int main(){
     iSoc = sl_Socket(SL_AF_RF, SL_SOCK_RAW, flag_channel);
     if (flag_function) source_function();
     else sink_function();
+    sl_Close(iSoc);
 }
